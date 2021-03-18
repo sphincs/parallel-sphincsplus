@@ -7,3 +7,5 @@ The specific features that this implements (that the reference code doesn't):
 - It is multithreaded; that is, it can split the job of producing a signature over several threads
 
 - It can support multiple parameter sets at once
+
+It does assume that you have the AVX2 and AES_NI instructions available - if not, well, I'll refer you to the Sphincs+ reference code...
