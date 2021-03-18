@@ -29,6 +29,10 @@ const int sha256_addr_bytes = 22; // SHA256 uses a shortened addr structure
                                   // that's 22 bytes long
 const int sha256_output_size = 32; // The size of an untruncated SHA256 output
 const int sha256_block_size = 64; // SHA256 processes things in 64 byte chunks
+const int max_message_hash_size = 64; // The largest size of a SHA-2 hash
+                            // Used in SHA256 level 5 parameter sets
+const int max_message_block_size = 128; // The largest internal block of
+                            // a SHA-2 hash
 const int max_mgf1_input = max_len_hash + 32; // The maximum seed size for
                             // an MGF1 input.  32 is the size of an addr
 const unsigned max_track = 8; // The maximum number of hashes we can do in

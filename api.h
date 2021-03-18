@@ -231,10 +231,22 @@ public:
     virtual ~key(void);
 };
 
+class hash {
+public:
+    virtual void init(void) = 0;
+    virtual void update(const void *, size_t) = 0;
+    virtual void final(void *) = 0;
+    virtual size_t len_hash(void) = 0;
+    virtual size_t block_size(void) = 0;
+    virtual void zeroize(void) = 0;
+    virtual ~hash(void) { ; }
+};
+
 // This is for SHA256-based parameter sets
 class sha256_hash : public key {
 private:
     void initialize_public_seed(const unsigned char *public_seed);
+    virtual hash* get_message_hash(void) = 0;
 protected:
     virtual void prf_addr_xn(unsigned char **out,
               const addr_t* addrxn);
@@ -313,6 +325,12 @@ protected:
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
 };
+class key_sha256_simple_13 : public key_sha256_simple {
+    hash* get_message_hash(void);
+};
+class key_sha256_simple_5 : public key_sha256_simple {
+    hash* get_message_hash(void);
+};
 
 // This is for SHA256-robust-based parameter sets
 class key_sha256_robust : public sha256_hash {
@@ -323,6 +341,12 @@ protected:
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
+};
+class key_sha256_robust_13 : public key_sha256_robust {
+    hash* get_message_hash(void);
+};
+class key_sha256_robust_5 : public key_sha256_robust {
+    hash* get_message_hash(void);
 };
 
 // This is for SHAKE256-simple-based parameter sets
@@ -377,73 +401,73 @@ protected:
 // And now the individual parameter set classes
 
 // The SHA256 simple 128F parameter set
-class key_sha256_128f_simple : public key_sha256_simple {
+class key_sha256_128f_simple : public key_sha256_simple_13 {
 public:
     key_sha256_128f_simple(void) { set_128f(); }
 };
 
 // The SHA256 robust 128F parameter set
-class key_sha256_128f_robust : public key_sha256_robust {
+class key_sha256_128f_robust : public key_sha256_robust_13 {
 public:
     key_sha256_128f_robust(void) { set_128f(); }
 };
 
 // The SHA256 simple 128S parameter set
-class key_sha256_128s_simple : public key_sha256_simple {
+class key_sha256_128s_simple : public key_sha256_simple_13 {
 public:
     key_sha256_128s_simple(void) { set_128s(); }
 };
 
 // The SHA256 robust 128S parameter set
-class key_sha256_128s_robust : public key_sha256_robust {
+class key_sha256_128s_robust : public key_sha256_robust_13 {
 public:
     key_sha256_128s_robust(void) { set_128s(); }
 };
 
 // The SHA256 simple 192F parameter set
-class key_sha256_192f_simple : public key_sha256_simple {
+class key_sha256_192f_simple : public key_sha256_simple_13 {
 public:
     key_sha256_192f_simple(void) { set_192f(); }
 };
 
 // The SHA256 robust 192F parameter set
-class key_sha256_192f_robust : public key_sha256_robust {
+class key_sha256_192f_robust : public key_sha256_robust_13 {
 public:
     key_sha256_192f_robust(void) { set_192f(); }
 };
 
 // The SHA256 simple 192S parameter set
-class key_sha256_192s_simple : public key_sha256_simple {
+class key_sha256_192s_simple : public key_sha256_simple_13 {
 public:
     key_sha256_192s_simple(void) { set_192s(); }
 };
 
 // The SHA256 robust 192S parameter set
-class key_sha256_192s_robust : public key_sha256_robust {
+class key_sha256_192s_robust : public key_sha256_robust_13 {
 public:
     key_sha256_192s_robust(void) { set_192s(); }
 };
 
 // The SHA256 simple 256F parameter set
-class key_sha256_256f_simple : public key_sha256_simple {
+class key_sha256_256f_simple : public key_sha256_simple_5 {
 public:
     key_sha256_256f_simple(void) { set_256f(); }
 };
 
 // The SHA256 robust 256F parameter set
-class key_sha256_256f_robust : public key_sha256_robust {
+class key_sha256_256f_robust : public key_sha256_robust_5 {
 public:
     key_sha256_256f_robust(void) { set_256f(); }
 };
 
 // The SHA256 simple 256S parameter set
-class key_sha256_256s_simple : public key_sha256_simple {
+class key_sha256_256s_simple : public key_sha256_simple_5 {
 public:
     key_sha256_256s_simple(void) { set_256s(); }
 };
 
 // The SHA256 robust 256S parameter set
-class key_sha256_256s_robust : public key_sha256_robust {
+class key_sha256_256s_robust : public key_sha256_robust_5 {
 public:
     key_sha256_256s_robust(void) { set_256s(); }
 };
