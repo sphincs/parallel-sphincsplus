@@ -298,11 +298,6 @@ Open questions (and possible future work):
   apparently wants a nondetermanistic signature, but we can't do it.
   Currently, we fall back to determanistic mode; would returning failure or
   (say) falling back to rdrand make more sense?
-- The implementation of compute_chains uses a lot of logic to try to minimize
-  the number of times we need to call f_xn.  For haraka, it may be cheaper
-  to use a straight-forward implementation that uses f (of course, we'd have
-  to provide f).  I tried this; it turns out we'd need to write several
-  new (nonparallelized) versions of the haraka functions...
 - It would be nice if we could collect the various object files into a single
   (say) .a file.  However, it doesn't work with my tools (because my objects
   use "link time optimization", and g++ refuses to handle a .a file with that,
