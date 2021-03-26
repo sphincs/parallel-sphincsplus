@@ -20,8 +20,13 @@ std::unique_ptr<unsigned char[]> key::sign(
                                message, len_message, rand);
 
     if (worked != success) {
-        throw std::runtime_error( "no Sphincs+ private key" ); // The only
-                             // possible reason sign would generate an error 
+        if (!have_private_key) {
+            // We rather need a private key to sign
+            throw std::runtime_error( "no Sphincs+ private key" );
+        } else {
+            // The only other possible failure reason
+            throw std::runtime_error( "fault detected during Sphincs+ signature process" );
+        }
     }
 
     return signature;

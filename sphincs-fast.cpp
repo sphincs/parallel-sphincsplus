@@ -136,6 +136,7 @@ key::key(void) {
     offset_tree_index = 28;
 
     num_thread = default_thread;
+    detect_fault = default_detect_fault;
 }
 
 key::~key(void) {
