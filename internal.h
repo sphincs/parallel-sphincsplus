@@ -39,6 +39,9 @@ const unsigned default_thread = 4; // If the application doesn't tell us
 const unsigned max_thread = 16; // No matter what the application says,
                             // don't use more than 16 threads
 
+const bool default_detect_fault = false; // Turn off fault detected by
+                            // default (it's expensive)
+
 // Offsets of objects within a private key (figure 12 of the Sphincs+ spec)
 // These are implicitly multiplied by n to get the byte offset
 enum {
