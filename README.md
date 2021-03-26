@@ -8,4 +8,6 @@ The specific features that this implements (that the reference code doesn't):
 
 - It can support multiple parameter sets at once
 
+- Optional detection of fault attacks
+
 It does assume that you have the AVX2 and AES_NI instructions available, as well as the Posix multithreading API - if not, well, I'll refer you to the Sphincs+ reference code...
