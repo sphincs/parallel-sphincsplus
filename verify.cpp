@@ -56,9 +56,11 @@ success_flag key::verify(
         set_type(addrx[i], ADDR_TYPE_FORSTREE);
     }
     for (unsigned i=0; i<k(); i+=track) {
+        // Travel up the authentication both for the next this_track FORS trees
         unsigned this_track = k() - i;  // Number of tracks we're processing
                                         // this iteration
         if (this_track > track) this_track = track;
+ 
         unsigned char *out[max_track];
         for (unsigned j=0; j<this_track; j++) {
             out[j] = &fors_node[(i+j)*n];
@@ -79,7 +81,6 @@ success_flag key::verify(
             fors_index[j] = geo.fors[i+j] + ((i+j)<<t());
         }
 
-        // Do the initial hash of the revealed FORS leaves
         for (unsigned k=0; k<this_track; k++) {
             set_tree_height(addrx[k], 0);
             set_tree_index(addrx[k], fors_index[k] );
