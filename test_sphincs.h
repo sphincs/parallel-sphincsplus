@@ -2,6 +2,7 @@
 #define TEST_SPHINCS_H_
 enum noise_level { quiet, whisper, loud };
 	
+extern bool test_testvector(bool fast_flag, enum noise_level level);
 extern bool test_keygen(bool fast_flag, enum noise_level level);
 extern bool test_sign(bool fast_flag, enum noise_level level);
 extern bool test_verify(bool fast_flag, enum noise_level level);
