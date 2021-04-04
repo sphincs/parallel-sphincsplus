@@ -3,10 +3,42 @@
  */ 
 #include <string.h>
 #include "api.h"
-#include "xn_internal.h"
 #include "internal.h"
 
 namespace sphincs_plus {
+
+class gen_wots_leaves : public leaf_gen {
+    key& k;
+    unsigned num_track;
+    unsigned wots_digits;
+    unsigned n;
+    int wots_len;
+
+    unsigned wots_sign_leaf;
+    addr_t leaf_addr[max_track];
+    addr_t pk_addr[max_track];
+public:
+    gen_wots_leaves( key& tk ) : k(tk) {
+        num_track = k.num_track();
+        wots_digits = k.wots_digits();
+        n = k.len_hash();
+        wots_len = k.wots_bytes();
+    }
+
+    void setup( addr_t wots_addr, uint32_t idx_leaf ) {
+        memset( leaf_addr, 0, addr_bytes*num_track);
+        memset( pk_addr, 0, addr_bytes*num_track);
+        for (unsigned j=0; j<num_track; j++) {
+            k.set_type(leaf_addr[j], ADDR_TYPE_WOTS);
+            k.set_type(pk_addr[j], ADDR_TYPE_WOTSPK);
+            k.copy_subtree_addr(leaf_addr[j], wots_addr);
+            k.copy_subtree_addr(pk_addr[j], wots_addr);
+        }
+        wots_sign_leaf = idx_leaf;
+    }
+
+    virtual void operator()(unsigned char*, uint32_t idx);
+};
 
 //
 // This builds the Merkle tree, placing the computed root into root
@@ -22,23 +54,17 @@ void key::merkle_sign(uint8_t *sig, unsigned char *root,
     unsigned char *auth_path = sig ;
     addr_t tree_addrxn[max_track];
     int j;
-    struct leaf_info_xn info;
+    gen_wots_leaves info(*this);
     int num_track = this->num_track(); // Number of hashes we can compute at
                          //  once
 
     memset( tree_addrxn, 0, addr_bytes*num_track);
-    memset( info.leaf_addr, 0, addr_bytes*num_track);
-    memset( info.pk_addr, 0, addr_bytes*num_track);
     for (j=0; j<num_track; j++) {
         set_type(tree_addrxn[j], ADDR_TYPE_HASHTREE);
-        set_type(info.leaf_addr[j], ADDR_TYPE_WOTS);
-        set_type(info.pk_addr[j], ADDR_TYPE_WOTSPK);
         copy_subtree_addr(tree_addrxn[j], tree_addr);
-        copy_subtree_addr(info.leaf_addr[j], wots_addr);
-        copy_subtree_addr(info.pk_addr[j], wots_addr);
     }
 
-    info.wots_sign_leaf = idx_leaf;
+    info.setup( wots_addr, idx_leaf );
 
     // If we're building a half tree, then we reduce
     // the tree height we walk by one
@@ -51,42 +77,63 @@ void key::merkle_sign(uint8_t *sig, unsigned char *root,
     treehashxn(root, auth_path,
                 idx_leaf, walk_offset,
                 walk_height,
-                &key::wots_gen_leafxn,
-                tree_addrxn, &info);
+                info,
+                tree_addrxn);
 }
+
+class gen_fors_leaves : public leaf_gen {
+    key& k;
+    unsigned num_track;
+    unsigned n;
+    unsigned revealed_idx;       // The index of the leaf to output
+                                 // Includes idx_offset
+    unsigned char *leaf_buffer;  // Where to write the leaf
+    addr_t leaf_addrx[max_track];
+public:
+    gen_fors_leaves( key& tk ) : k(tk) {
+        num_track = k.num_track();
+        n = k.len_hash();
+    }
+
+    void setup( addr_t fors_addr, uint32_t idx, unsigned char *buffer) {
+        memset( leaf_addrx, 0, addr_bytes * num_track );
+        for (unsigned i=0; i<num_track; i++) {
+            k.copy_keypair_addr(leaf_addrx[i], fors_addr);
+            k.set_type(leaf_addrx[i], ADDR_TYPE_FORSTREE);
+        }
+        revealed_idx = idx;
+        leaf_buffer = buffer;
+    }
+
+    virtual void operator()(unsigned char*, uint32_t idx);
+};
 
 void key::fors_sign(uint8_t *sig, unsigned char *root,
                      unsigned which_fors_tree, uint32_t idx_leaf,
                      addr_t fors_addr ) {
     addr_t fors_tree_addr_xn[max_track];
-    struct fors_gen_leaf_info_xn fors_info;
-    addr_t* fors_leaf_addr_xn = fors_info.leaf_addrx;
+    gen_fors_leaves info(*this);
     uint32_t idx_offset;
     unsigned num_track = this->num_track(); // Number of hashes we can
                          //  compute in parallel
 
     memset( fors_tree_addr_xn, 0, addr_bytes * num_track );
-    memset( fors_leaf_addr_xn, 0, addr_bytes * num_track );
 
     for (unsigned i=0; i<num_track; i++) {
         copy_keypair_addr(fors_tree_addr_xn[i], fors_addr);
         set_type(fors_tree_addr_xn[i], ADDR_TYPE_FORSTREE);
-        copy_keypair_addr(fors_leaf_addr_xn[i], fors_addr);
-        set_type(fors_leaf_addr_xn[i], ADDR_TYPE_FORSTREE);
     }
 
     idx_offset = which_fors_tree << t();
 
     /* Include the secret key part that produces the selected leaf node. */
-    fors_info.revealed_idx = idx_leaf + idx_offset;
-    fors_info.leaf_buffer = sig;
+    info.setup( fors_addr, idx_leaf + idx_offset, sig );
     sig += len_hash();
 
     /* Compute the authentication path for this leaf node. */
     treehashxn(root, sig,
                 idx_leaf, idx_offset, t(),
-                &key::fors_gen_leafxn,
-                fors_tree_addr_xn, &fors_info);
+                info, fors_tree_addr_xn);
 }
 
 //
@@ -118,8 +165,8 @@ void key::wots_sign( unsigned char *sig, unsigned merkle_level,
                 pointer[k] = sig + (j+k)*n;
             } else {
                 pointer[k] = dummy_buffer;
-	    }
-	}
+            }
+        }
         prf_addr_xn(pointer, leaf_addr);
     }
 
@@ -174,11 +221,8 @@ void key::wots_sign( unsigned char *sig, unsigned merkle_level,
 void key::treehashxn(unsigned char *root, unsigned char *auth_path,
                 uint32_t leaf_idx, uint32_t idx_offset,
                 uint32_t tree_height,
-                void (key::*gen_leafxn)(
-                   unsigned char* /* Where to write the leaves */,
-                   uint32_t idx, void *info),
-                addr_t* tree_addrxn,
-                void *info)
+                leaf_gen& gen_leafxn,
+                addr_t* tree_addrxn)
 {
     unsigned n = len_hash();
     unsigned num_track = this->num_track();
@@ -207,7 +251,7 @@ void key::treehashxn(unsigned char *root, unsigned char *auth_path,
     }
 
     for (idx = 0;; idx++) {
-        (this->*gen_leafxn)( current, num_track*idx + idx_offset, info );
+        gen_leafxn( current, num_track*idx + idx_offset );
 
         /* Now combine the freshly generated right node with previously */
         /* generated left ones */
@@ -269,14 +313,14 @@ void key::treehashxn(unsigned char *root, unsigned char *auth_path,
                      half_track * (internal_idx&~1) + j - left_adj + internal_idx_offset );
             }
 
-	    // Set up the part of the input vector that's the left input
-	    // That is, the ABCDEFGH side
+            // Set up the part of the input vector that's the left input
+            // That is, the ABCDEFGH side
             unsigned char *left = &stack[h * num_track * n];
-	    for (unsigned j = 0; j < half_track; j++) {
+            for (unsigned j = 0; j < half_track; j++) {
                 in[j] = &left[j * 2 * n];
             }
 
-	    // And thash those bad boys pairwise
+            // And thash those bad boys pairwise
             thash_xn( out,
                       in,
                       2, tree_addrxn);
@@ -291,45 +335,35 @@ void key::treehashxn(unsigned char *root, unsigned char *auth_path,
 /*
  * This generates num_track sequential WOTS public keys
  */
-void key::wots_gen_leafxn(unsigned char *dest,
-                   uint32_t leaf_idx, void *v_info) {
-    struct leaf_info_xn *info = static_cast<struct leaf_info_xn *>(v_info);
-    addr_t* leaf_addr = info->leaf_addr;
-    addr_t* pk_addr = info->pk_addr;
-    int i, j, k;
-    int wots_len = wots_bytes();
+void gen_wots_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
+    unsigned i, j;
     unsigned char pk_buffer[ max_track * max_wots_bytes ];
-    unsigned wots_offset = wots_len;
     unsigned char *buffer;
-    int num_track = this->num_track();
 
     for (j = 0; j < num_track; j++) {
-        set_keypair_addr( leaf_addr[j], leaf_idx + j );
-        set_keypair_addr( pk_addr[j], leaf_idx + j );
+        k.set_keypair_addr( leaf_addr[j], leaf_idx + j );
+        k.set_keypair_addr( pk_addr[j], leaf_idx + j );
     }
-
-    int wots_digits = this->wots_digits();
-    unsigned n = len_hash();
 
     for (i = 0, buffer = pk_buffer; i < wots_digits; i++, buffer += n) {
         unsigned char *chain_buffer[max_track];
-        for (k=0; k<num_track; k++) chain_buffer[k] = buffer + k*wots_offset;
+        for (unsigned z=0; z<num_track; z++) chain_buffer[z] = buffer + z*wots_len;
 
         /* Start with the secret seed */
         for (j = 0; j < num_track; j++) {
-            set_chain_addr(leaf_addr[j], i);
-            set_hash_addr(leaf_addr[j], 0);
+            k.set_chain_addr(leaf_addr[j], i);
+            k.set_hash_addr(leaf_addr[j], 0);
         }
-        prf_addr_xn(chain_buffer, leaf_addr);
+        k.prf_addr_xn(chain_buffer, leaf_addr);
 
         /* Iterate down the WOTS chain */
-        for (k=0; k < wots_w-1; k++) {
+        for (unsigned z=0; z < wots_w-1; z++) {
 
             /* Iterate one step on all num_track chains */
             for (j = 0; j < num_track; j++) {
-                set_hash_addr(leaf_addr[j], k);
+                k.set_hash_addr(leaf_addr[j], z);
             }
-            f_xn(chain_buffer, chain_buffer, leaf_addr);
+            k.f_xn(chain_buffer, chain_buffer, leaf_addr);
         }
     }
 
@@ -337,8 +371,8 @@ void key::wots_gen_leafxn(unsigned char *dest,
     unsigned char *output_buffer[max_track];
     for (i=0; i<num_track; i++) output_buffer[i] = dest + i*n;
     unsigned char *input_buffer[max_track];
-    for (i=0; i<num_track; i++) input_buffer[i] = pk_buffer + i*wots_offset;
-    thash_xn(output_buffer,
+    for (i=0; i<num_track; i++) input_buffer[i] = pk_buffer + i*wots_len;
+    k.thash_xn(output_buffer,
             input_buffer,
             wots_digits, pk_addr);
 }
@@ -348,38 +382,32 @@ void key::wots_gen_leafxn(unsigned char *dest,
  * This also generates the revealed leaf if leaf_idx indicates that it
  * is the one being revealed
  */
-void key::fors_gen_leafxn(unsigned char *leaf,
-                   uint32_t leaf_idx, void *v_info) {
-    struct fors_gen_leaf_info_xn *info =
-                    static_cast<struct fors_gen_leaf_info_xn *>(v_info);
-    unsigned n = len_hash();
-    addr_t* fors_leaf_addrxn = info->leaf_addrx;
-    unsigned num_track = this->num_track();
+void gen_fors_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
 
     /* Only set the parts that the caller doesn't set */
     for (unsigned j = 0; j < num_track; j++) {
-        set_tree_index(fors_leaf_addrxn[j], leaf_idx + j);
+        k.set_tree_index(leaf_addrx[j], leaf_idx + j);
     }
 
     // Generate the num_track private values
     unsigned char *pointer[max_track];
     for (unsigned j = 0; j < num_track; j++) {
-        pointer[j] = leaf + j*n;
+        pointer[j] = dest + j*n;
     }
-    prf_addr_xn(pointer, fors_leaf_addrxn);
+    k.prf_addr_xn(pointer, leaf_addrx);
 
     // Check if one of the leaves we generated is the one that's supposed to
     // be revealed
-    if (((leaf_idx ^ info->revealed_idx) & ~(num_track-1)) == 0) {
+    if (((leaf_idx ^ revealed_idx) & ~(num_track-1)) == 0) {
         // Found it - copy it out
-        memcpy( info->leaf_buffer, leaf + (info->revealed_idx & (num_track-1))*n, n );
+        memcpy( leaf_buffer, dest + (revealed_idx & (num_track-1))*n, n );
     }
 
     // Convert the num_track private values into the corresponding public
     // values (the ones at the bottom of the FORS tree)
     unsigned char *leaves[max_track];
-    for (unsigned j = 0; j < num_track; j++) leaves[j] = leaf + j*n;
-    f_xn(leaves, leaves, fors_leaf_addrxn);
+    for (unsigned j = 0; j < num_track; j++) leaves[j] = dest + j*n;
+    k.f_xn(leaves, leaves, leaf_addrx);
 }
 
 } /* namespace sphincs_plus */

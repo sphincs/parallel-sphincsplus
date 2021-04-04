@@ -5,7 +5,6 @@
  */ 
 #include <string.h>
 #include "api.h"
-#include "xn_internal.h"
 #include "internal.h"
 #include "fips202.h"
 #include "fips202x4.h"

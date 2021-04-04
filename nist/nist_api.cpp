@@ -67,15 +67,17 @@ static sphincs_plus::success_flag nist_random( void *target, size_t bytes ) {
     return sphincs_plus::success;
 }
 
-/*
- * Kludge needed because our API wasn't designed to seed based on a
- * predetermined buffer
- */
-static const unsigned char *seed_ptr;
-static sphincs_plus::success_flag seed_random( void *target, size_t bytes ) {
-    memcpy( target, seed_ptr, bytes );
-    return sphincs_plus::success;
-}
+// Class used to pass the predetermined seed to the key pair generator
+class rand_buffer : public sphincs_plus::random {
+    const unsigned char* buffer;
+public:
+    rand_buffer( const unsigned char* a) : buffer(a) { ; }
+    virtual enum sphincs_plus::random_return operator()( void *target,
+                                         size_t num_bytes ) const {
+        memcpy( target, buffer, num_bytes );
+        return sphincs_plus::random_success;
+    }
+};
 
 /*
  * Generates a key pair given a seed of length
@@ -84,7 +86,7 @@ int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
                              const unsigned char *seed)
 {
     KEY_TYPE k;
-    seed_ptr = seed;
+    rand_buffer seed_random(seed);
 
     sphincs_plus::success_flag f = k.generate_key_pair(seed_random);
     if (f != sphincs_plus::success) {

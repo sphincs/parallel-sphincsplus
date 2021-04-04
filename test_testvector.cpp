@@ -49,6 +49,19 @@ static struct v {
 #include "testvector.h"
 };
 
+class optrand_buffer : public sphincs_plus::random {
+    void *buffer;
+    size_t len;
+public:
+    optrand_buffer( void *a, size_t b) : buffer(a), len(b) { ; }
+    virtual enum sphincs_plus::random_return operator()( void *target,
+                                         size_t num_bytes ) const {
+        if (num_bytes > len) return sphincs_plus::random_failure;
+        memcpy( target, buffer, num_bytes );
+        return sphincs_plus::random_success;
+    }
+};
+
 // Given a parameter set name, return a key of that type
 static sphincs_plus::key* lookup_key( const char *name) {
     if (0 == strcmp( name, "sha256_128f_simple" ))
@@ -141,15 +154,6 @@ static bool fixed_rand( void *target, size_t num_bytes ) {
     return true;
 }
 
-//
-// This is an 'RNG' that gives the optrand pattern that the signature
-// generation expects
-static unsigned char optrand_buffer[32];
-static bool optrand_rng( void *target, size_t num_bytes ) {
-    memcpy( target, optrand_buffer, num_bytes );
-    return true;
-}
-
 // For our SHA256 implementation, we borrow the one from Sphincs
 #include "sha256.h"
 static void sha256( unsigned char *output,
@@ -194,15 +198,14 @@ bool test_testvector(bool fast_flag, enum noise_level level) {
         }
 
         // That passed; now on to the signature
-        // Copy the optrand somewhere the optrand_rng can get it
-        memcpy( optrand_buffer, v.optrand, 32 );
+        optrand_buffer optrand( v.optrand, 32 );
 
         static unsigned char message[3] = { 'a', 'b', 'c' };
         unsigned char* sig = new unsigned char[k->len_signature()];
 
         // And sign the message
         if (!k->sign( sig, k->len_signature(), message, sizeof message,
-                      optrand_rng )) {
+                      optrand )) {
             delete[] sig;
             delete k;
             printf( "*** ERROR GENERATING SIGNATURE\n" );
