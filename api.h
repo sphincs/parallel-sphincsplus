@@ -172,14 +172,6 @@ protected:
                     uint32_t tree_height,
                     leaf_gen& leaf,
                     addr_t* tree_addrxn);
-#if 0
-                    void (key::*gen_leafxn)(
-                        unsigned char* /* Where to write the leaves */,
-                        uint32_t idx, void *info),
-                    void *info);
-#endif
-    void fors_gen_leafxn(unsigned char*,
-                    uint32_t idx, void *info);
 
     virtual unsigned num_track(void) = 0;
     virtual unsigned num_log_track(void) = 0;
