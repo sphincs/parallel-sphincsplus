@@ -28,6 +28,20 @@ const success_flag failure = false;
 // and optionally during signing
 typedef success_flag (*random_function)( void *target, size_t num_bytes );
 
+enum random_return {
+    random_failure,    // Random generator failed
+    random_success,    // Random generator succeeded
+    random_default };  // No random generator provided
+// This is the class we invoke when we want randomness.  Normally, this just
+// turns around and calls a random_function
+class random {
+    random_function func;
+public:
+    virtual enum random_return operator()( void *target,
+                                           size_t num_bytes ) const;
+    random( random_function f = 0 ) : func(f) { ; }
+};
+
 // Here is a default one (should the application prefer not to be bothered)
 success_flag rdrand_fill( void *raget, size_t num_bytes );
 
@@ -57,6 +71,12 @@ struct SHAKE256_PRECOMPUTE {
     uint64_t s[25];
     unsigned index;
     unsigned nonzero;
+};
+
+class leaf_gen {
+public:
+    virtual void operator()(unsigned char*, // Where to write the leaves
+                     uint32_t idx) = 0;     // Leaves to generate
 };
 
 //
@@ -150,13 +170,14 @@ protected:
     void treehashxn(unsigned char *root, unsigned char *auth_path,
                     uint32_t leaf_idx, uint32_t idx_offset,
                     uint32_t tree_height,
+                    leaf_gen& leaf,
+                    addr_t* tree_addrxn);
+#if 0
                     void (key::*gen_leafxn)(
                         unsigned char* /* Where to write the leaves */,
                         uint32_t idx, void *info),
-                    addr_t* tree_addrxn,
                     void *info);
-    void wots_gen_leafxn(unsigned char*,
-                    uint32_t idx, void *info);
+#endif
     void fors_gen_leafxn(unsigned char*,
                     uint32_t idx, void *info);
 
@@ -198,12 +219,14 @@ protected:
 
     friend class task;
     friend class work_center;
+    friend class gen_wots_leaves;
+    friend class gen_fors_leaves;
 
     key(void);
 public:
     //
     // And the public API (the entire point of this)
-    success_flag generate_key_pair(random_function rand = rdrand_fill);
+    success_flag generate_key_pair(const random& rand = rdrand_fill);
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
     const unsigned char *get_public_key(void);
@@ -213,10 +236,10 @@ public:
     success_flag sign(
             unsigned char *signature, size_t len_signature_buffer,
             const unsigned char *message, size_t len_message,
-	    random_function rand = rdrand_fill);
+            const random& rand = rdrand_fill);
     std::unique_ptr<unsigned char[]> sign(
             const unsigned char *message, size_t len_message,
-	    random_function rand = rdrand_fill);
+            const random& rand = rdrand_fill);
     success_flag verify(
             const unsigned char *signature, size_t len_signature,
             const void *message, size_t len_message);

@@ -195,7 +195,7 @@ static inline uint64_t shr(uint64_t a, unsigned shift ) {
 success_flag key::sign(
             unsigned char* signature, size_t len_signature_buffer,
             const unsigned char* message, size_t len_message,
-            random_function rand) {
+            const random& rand) {
     // Make sure this key has the private key loaded
     if (!have_private_key) return false;
 
@@ -215,14 +215,15 @@ success_flag key::sign(
 
     // Step 2 - generate the randomness
     unsigned char opt[ max_len_hash ];
-    if (rand) {
-        // Q: what should we do on randomness failure???
-        (void)rand( opt, n );
-    } else {
-        memset( opt, 0, n );
+    switch (rand( opt, n )) {
+    case random_success:
+        break;
+    case random_failure: default:
+        // Randomness failure detected; if we want to do something other
+	// than default, we'd do it here
+    case random_default:
+        memset( opt, 0, n );  // No optrand provided; use the default
     }
-    // TODO: Give the caller the option of not doing two passes over the
-    // message
     prf_msg( &signature[ geo.randomness_offset ],
              opt, message, len_message );
 

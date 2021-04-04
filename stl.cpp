@@ -12,7 +12,7 @@ namespace sphincs_plus {
 
 std::unique_ptr<unsigned char[]> key::sign(
         const unsigned char *message, size_t len_message,
-        random_function rand) {
+        const random& rand) {
     size_t sig_len = len_signature();
     std::unique_ptr<unsigned char[]>signature( new unsigned char[sig_len] );
 
