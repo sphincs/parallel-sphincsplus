@@ -221,7 +221,6 @@ bool test_testvector(bool fast_flag, enum noise_level level) {
 
         // Check if we got the expeccted hash
         if (0 != memcmp( v.hash_sig, hash, 32 )) {
-            delete k;
             printf( "*** GENERATING DIFFERENT SGNATURES FOR %s\n",
                     v.parameter_set_name );
             return 0;
