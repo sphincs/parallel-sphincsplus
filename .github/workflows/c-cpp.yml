@@ -16,3 +16,4 @@ jobs:
     - name: make
       run: make test_sphincs
     - name: run test
+      run: test_sphincs -q all
