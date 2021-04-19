@@ -86,13 +86,18 @@ static const unsigned long long K[SHA512_K_SIZE] = {
 
 static void sha512_compress (SHA512_CTX * ctx, const void *buf)
 {
-    unsigned long long S[SHA512_S_SIZE], W[SHA512_K_SIZE], t0, t1;
+    unsigned long long S0, S1, S2, S3, S4, S5, S6, S7, W[SHA512_K_SIZE], t0, t1;
     int i;
 
     /* copy state into S */
-    for (i = 0; i < SHA512_S_SIZE; i++) {
-        S[i] = ctx->state[i];
-    }
+    S0 = ctx->state[0];
+    S1 = ctx->state[1];
+    S2 = ctx->state[2];
+    S3 = ctx->state[3];
+    S4 = ctx->state[4];
+    S5 = ctx->state[5];
+    S6 = ctx->state[6];
+    S7 = ctx->state[7];
 
     /* copy the state into 1024-bits into W[0..15] */
     for( i = 0; i < 16; i++ ) {
@@ -106,23 +111,28 @@ static void sha512_compress (SHA512_CTX * ctx, const void *buf)
 
     /* Compress */
     for (i = 0; i < SHA512_K_SIZE; i++) {
-        t0 = S[7] + Sigma1(S[4]) + Ch(S[4], S[5], S[6]) + K[i] + W[i];
-        t1 = Sigma0(S[0]) + Maj(S[0], S[1], S[2]);
-        S[7] = S[6];
-        S[6] = S[5];
-        S[5] = S[4];
-        S[4] = S[3] + t0;
-        S[3] = S[2];
-        S[2] = S[1];
-        S[1] = S[0];
-        S[0] = t0 + t1;
+        t0 = S7 + Sigma1(S4) + Ch(S4, S5, S6) + K[i] + W[i];
+        t1 = Sigma0(S0) + Maj(S0, S1, S2);
+        S7 = S6;
+        S6 = S5;
+        S5 = S4;
+        S4 = S3 + t0;
+        S3 = S2;
+        S2 = S1;
+        S1 = S0;
+        S0 = t0 + t1;
     }
 
 
     /* feedback */
-    for (i = 0; i < SHA512_S_SIZE; i++) {
-        ctx->state[i] += S[i];
-    }
+    ctx->state[0] += S0;
+    ctx->state[1] += S1;
+    ctx->state[2] += S2;
+    ctx->state[3] += S3;
+    ctx->state[4] += S4;
+    ctx->state[5] += S5;
+    ctx->state[6] += S6;
+    ctx->state[7] += S7;
 }
 
 void SHA512_Init (SHA512_CTX *ctx)
