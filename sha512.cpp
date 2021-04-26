@@ -3,23 +3,9 @@
 #include <cstring>
 #include "api.h"
 #include "internal.h"
+#include "sha512.h"
 
 namespace sphincs_plus {
-
-/* Length of a SHA512 hash */
-const unsigned sha512_output_size = 64;
-
-/* SHA512 processes blocks in 128 byte chunks */
-const unsigned sha512_block_size = 128;
-
-/* SHA512 context. */
-typedef struct {
-  unsigned long long state[8];       /* state; this is in the CPU native format */
-  unsigned long long count;          /* number of bits processed so far */
-  unsigned in_buffer;                /* number of bytes within the below */
-                                     /* buffer */
-  unsigned char buffer[128];         /* input buffer.  This is in byte vector format */
-} SHA512_CTX;
 
 /* 
  * Do not change these #define values. They are defined to appease
@@ -84,8 +70,7 @@ static const unsigned long long K[SHA512_K_SIZE] = {
 #define Gamma0(x)       (S(x, 1) ^ S(x, 8) ^ R(x, 7))
 #define Gamma1(x)       (S(x, 19) ^ S(x, 61) ^ R(x, 6))
 
-static void sha512_compress (SHA512_CTX * ctx, const void *buf)
-{
+static void sha512_compress (SHA512_CTX * ctx, const void *buf) {
     unsigned long long S0, S1, S2, S3, S4, S5, S6, S7, W[SHA512_K_SIZE], t0, t1;
     int i;
 
@@ -135,8 +120,7 @@ static void sha512_compress (SHA512_CTX * ctx, const void *buf)
     ctx->state[7] += S7;
 }
 
-void SHA512_Init (SHA512_CTX *ctx)
-{
+void SHA512_Init (SHA512_CTX *ctx) {
     ctx->state[0] = 0x6a09e667f3bcc908ULL;
     ctx->state[1] = 0xbb67ae8584caa73bULL;
     ctx->state[2] = 0x3c6ef372fe94f82bULL;
@@ -150,8 +134,7 @@ void SHA512_Init (SHA512_CTX *ctx)
     ctx->in_buffer = 0;
 }
 
-void SHA512_Update (SHA512_CTX *ctx, const void *src, unsigned int count)
-{
+void SHA512_Update(SHA512_CTX *ctx, const void *src, unsigned int count) {
     ctx->count += (count << 3);
 
     while (count) {
@@ -196,17 +179,6 @@ void SHA512Final (void *digest, SHA512_CTX *ctx) {
 }
 
 // The message hash for level 5
-class sha512 : public hash {
-    SHA512_CTX ctx;
-public:
-    virtual void init(void) { SHA512_Init(&ctx); }
-    virtual void update(const void *m, size_t len) { SHA512_Update( &ctx, m, len ); }
-    virtual void final(void *m) { SHA512Final((unsigned char*)m, &ctx); }
-    virtual size_t len_hash(void) { return sha512_output_size; }
-    virtual size_t block_size(void) { return sha512_block_size; }
-    virtual void zeroize(void) { sphincs_plus::zeroize( (void*)&ctx, sizeof ctx ); }
-    virtual ~sha512(void) { ; }
-};
 hash* key_sha256_simple_5::get_message_hash(void) {
     return new sha512;
 }

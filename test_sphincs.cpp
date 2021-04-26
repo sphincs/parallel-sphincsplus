@@ -19,6 +19,7 @@ static struct {
     bool (*test_enabled)(bool);        /* Check if this tests is enabled */
 } test_list[] = {
 //    { "testvector", test_testvector, "test vector from the draft", false },
+    { "sha512", test_sha512, "SHA512 known answer test", false, 0 },
     { "keygen", test_keygen, "key generation test", false, 0 },
     { "sign", test_sign, "signature generation test", false, 0 },
     { "verify", test_verify, "signature verification test", true, 0 },

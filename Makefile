@@ -21,7 +21,7 @@ OBJECTS =         $(subst .cpp,.o,$(SOURCES))
 HEADERS =         api.h internal.h mgf1_8x.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
-		  test_verify.cpp test_thread.cpp
+		  test_verify.cpp test_thread.cpp test_sha512.cpp
 
 TESTS = test PQCgenKAT_sign test_sphincs
 
@@ -45,15 +45,20 @@ test_sphincs: $(TEST_SOURCES) $(OBJECTS)
 PQCgenKAT_sign: PQCgenKAT_sign.o nist/nist_api.cpp rng.o $(OBJECTS) $(DET_HEADERS)
 	        $(CPP) $(CFLAGS) -o $@ $(OBJECTS) nist/nist_api.cpp rng.o $< -lcrypto -lpthread
 
+test_shake256: test_shake256.cpp fips202.cpp fips202x4.cpp utils.cpp \
+                  keccak4x/KeccakP-1600-times4-SIMD256.o $(HEADERS)
+	$(CPP) $(CFLAGS) -o $@ test_shake256.cpp fips202.cpp fips202x4.cpp utils.cpp \
+	                         keccak4x/KeccakP-1600-times4-SIMD256.o	
+
 speed_test: speed_test.cpp $(OBJECTS)
 	$(CPP) $(CFLAGS) -o $@ $(OBJECTS) $< -lpthread
 
 keccak4x/KeccakP-1600-times4-SIMD256.o: keccak4x/align.h keccak4x/brg_endian.h \
-					keccak4x/KeccakP-1600-times4-SIMD256.cpp \
+					keccak4x/KeccakP-1600-times4-SIMD256.c \
 					keccak4x/KeccakP-1600-times4-SnP.h \
 					keccak4x/KeccakP-1600-unrolling.macros \
 					keccak4x/SIMD256-config.h
-	$(CPP) $(CFLAGS) -c keccak4x/KeccakP-1600-times4-SIMD256.c -o $@
+	$(CC) $(CFLAGS) -c keccak4x/KeccakP-1600-times4-SIMD256.c -o $@
 
 PQCgenKAT_sign.o: nist/PQCgenKAT_sign.c
 	$(CC) $(CFLAGS) -c nist/PQCgenKAT_sign.c -o $@
