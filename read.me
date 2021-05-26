@@ -1,0 +1,232 @@
+Sphincs+ is a signature cryptosystem that was submitted to the NIST
+Postquantum Standardization; it was accepted as a Round 3 Alternate.
+It has the most conservative security assumption of all candidates
+(essentially, the second preimage resistance of the underlying hash function,
+which appears to be a safer assumption than any other; in particular, any
+signature method that first hashes the message, and then generates the
+signature based on that hash needs to include a security assumption of that
+hash - Sphincs+ makes no other security assumptions).  However, on the
+drawback side, Sphincs+ signatures and the signature generation time are both
+large (which is why it is an alternate).
+
+This package attempts to reduce one of the drawbacks (namely, the signature
+generation time; we can't reduce the signature size without breaking
+interoperability); in particular, it uses multithreading to accelerate the
+signature generation process. 
+
+Here is how this package is used:
+
+- Step 1: define an object that denotes the key, as in:
+
+    sphincs_plus::key_sha256_128s_simple signer;  // This says we're using
+                   // the SPHINCS+-SHA-256-128s-simple parameter set
+                   // There are classes for all 36 parameter sets
+
+- Step 2: give the signer a key.  Here are the possible options:
+
+   - Generate a new public/private keypair
+         if (!signer.generate_key_pair(rand)) handle_failure();
+
+      Notes:
+      - rand is a function that returns randomness.  If you omit it, the
+        package will rely on rdrand
+
+   - Load an existing private key
+         signer.set_private_key(priv_key);
+
+     Notes:
+     - priv_key is a byte array containing the private key in the format
+       specified in the Sphincs+ documentation
+
+   - Load an existing public key (if all you need to do is verify)
+         signer.set_public_key(public_key);
+
+     Notes:
+     - public_key is a byte array containing the public key in the format
+       specified in the Sphincs+ documentation
+
+- Step 3: sign a message; we provide two separate interfaces to do this:
+
+    - Option 1: the C-type interface
+          if (!signer.sign(signature, len_signature_buffer,
+                           message, len_message,
+                           rand)) handle_failure();
+          Notes:
+          - signature is the buffer where the signature to be placed
+          - len_signature_buffer is the length of the above buffer (and we'll
+            fail if the buffer isn't big enough).
+          - message, len_message is the message (and length) to sign
+          - rand is a function that returns randomness (and it is optional in
+            this case - omiting it has the signer default to rdrand; passing
+            0 means the signer will fall back to determanistic mode)
+
+    - Option 2: the C++-style interface
+          auto sig = signer.sign(message, len_message, rand);
+          
+          Notes:
+          - This allocates and returns the signature as a unique_ptr; sig.get()
+            will retrieve the pointer to the unsigned char */  This buffer will
+            be freed when sig goes out of scope.
+          - This call throws an exception on error (e.g. if the signer doesn't
+            have a key)
+          - rand is a function that returns randomness (and it is optional in
+            this case - omiting it has the signer default to rdrand; passing
+            0 means the signer will fall back to determanistic mode)
+
+    The call signer.len_signature() will retrieve the signature length
+
+- Step 4: verify a signature
+      bool success = signer.verify( signature, len_signature,
+                                    message, len_message );
+
+          Notes:
+          - signature is the buffer holding the signature
+          - len_signature is the length of the signature
+          - message, len_message is the message (and length) to verify
+          - this returns true if the signature verifies, false if not
+
+- Other useful interfaces:
+    - signer.len_signature(), signer.len_public_key(),
+      signer.len_private_key() returns the lengths of the generated
+      signatures, public keys and private keys for this parameter set.
+
+    - signer.get_public_key() and signer.get_private_key() returns copies of
+      the public and private keys.  The later is provided should you need to
+      store the private key for long term storage.
+
+    - signer.set_num_thread(4) sets the number of threads we attempt to use
+      while generating a signature; passing a 1 signifies that we shouldn't
+      spawn any child threads; it is also subject to a sane maximum.
+
+    - All key classes (such as key_sha256_128s_simple) are subclasses of
+      a master sphincs_plus::key class, logic such as:
+          sphincs_key::key* k;
+          if (i_am_in_a_haraka_mood)
+             k = new sphincs_plus::key_haraka_128s_simple;
+          else if (perhaps_sha_would_be_better)
+             k = new sphincs_plus::key_sha256_128s_simple;
+          else
+             k = new sphincs_plus::key_shake256_128s_simple;
+          k->generate_key_pair();
+       works as expected.
+
+
+Some comments:
+
+- This package is not meant  to replace the Sphincs+ reference code,
+  but to supplement it.  This means that this package doesn't have to
+  meet all the requirements that the reference code does (e.g. it
+  doesn't have to run everywhere).
+- This package was designed for high end processors (which are assumed
+  to be the ones with multiple cores available); we also assume that
+  AVX2, AES_NI and RDRAND instructions are available, and that plenty of
+  memory is available.
+- The API doesn't follow the NIST conventions; the NIST API is less than
+  ideal (in my view), and since I wasn't required to follow it, I designed
+  my own.
+  - The NIST API doesn't allow the caller to specify a parameter set; instead,
+    it is assumed that the routines will be compiled to be specific to one
+    parameter set.  This doesn't work well if the application needs access
+    to several different parameter sets.  Hence, what I did is have the
+    caller specify which parameter set is to be used (by selecting the
+    class).
+  - The NIST API has the caller pass in buffers that the crypto code is
+    expected to fill in; however the application cannot specify the size of
+    the buffer passed - instead, the application is assumed to know how big
+    each buffer will need to be.  While buffer sizing isn't that difficult,
+    that strikes me as a bit of a foot cannon.  Here are the solutions I
+    have:
+    - For the public and private keys, my API returns a const pointer to the
+      copy within the key object; hence no buffer overruns are possible.
+    - For the signature, my API can allocate the signature buffer and return
+      it (in a smart pointer that auto-frees it when done).
+    - Alternatively, the application allocates where the signature should
+      be placed and passes that buffer (along with the size of the buffer).
+      We're trusting that the application passes us the correct buffer size,
+      but it's better than what NIST had.
+    On the other hand, if you are in love with the NIST API, I provide
+    a NIST-compatible interface (nist_api.cpp); it might also be helpful
+    to see how this interface works.
+  - The NIST API returns a 0 on success; -1 on failure.  While this is a
+    matter of taste, I personally find it counterintitive; that leads to
+    calling code doing things such as "if (tryit()) failure;" which to me
+    looks wrong.  Hence, I changed it to return a boolean; true on success and
+    false on failure.  However, I agree that not everyone would be happy with
+    this convention, hence I put in typedefs and consts to make it easy to
+    change (which has the side effect of making our code slightly more
+    self-documenting).
+  - The reference code had direct calls to randombytes to get entropy; this
+    API has the caller directly passing in the random generator.  This is a
+    matter of taste; I don't like making direct calls to a specific rng (the
+    caller might have a device-dependent better one), and the third obvious
+    option (having the caller pass in a random pool) is a foot cannon.  On
+    the other option, it may be that the appllication doesn't want to bother,
+    so I included a default based on rdrand.
+  - Once again, a matter of taste, but I find the naming convention that NIST
+    used unintutitive; to me, crypto_sign_open doesn't denote 'verify'.
+    I renamed things to be more to my taste.
+- Some of this code originally came from the Sphincs+ reference code;
+  however I made a number of tweaks, both to match the different environment
+  (e.g. being able to support multiple parameter sets at once, or to avoid
+  VLAs which C++ doesn't like, to support the different API) and most
+  importantly because I felt like it.
+- I included a regression test package (test_sphincs); it has a number of
+  options; the quickest way is to do:
+       make test_sphincs
+       test_sphincs all
+  which will run all the tests it has on a representative sample of
+  parameter sets.
+
+Design decisions:
+  - I made the API using C++, rather than C; that provides us options
+    (namespaces, classes, virtual functions) that makes things considerably
+    cleaner; the logic depends heavily on virtual functions.
+  - I aimed to making this package as interoperable as possible to the
+    Sphincs+ reference code; in particular, the private keys have the same
+    format (and are generated by the same randomness, and correspond to the
+    same public keys).  One issue this causes is that the private key doesn't
+    contain any information about the parameter set used; this implies that
+    the API must have the caller specify the parameter set, and there's
+    nothing preventing you from trying to load (say) a 128f-sha256-robust
+    private key into one that expects 128s-shake256-simple.  This is not
+    ideal; however I can't think of a better option that would not break key
+    compatibility.
+  - I decided to support all the various Sphincs+ parameter sets (even the
+    ones that appear somewhat pointless, such as L5+Haraka).
+  - I decided to avoid globals; all memory is within the class object or
+    within automatics.  This is one gripe I have with the reference code,
+    which relies on globals heavily (and one which C++ makes easy; just
+    turn them into class members).
+  - I decided to always use the AVX2/AES_NI instructions to accelerate things;
+    my feeling is that if you are interested in maximal speed (the point of
+    this package), you'll want to run on a CPU with those instructions
+    available.  Yes, this does mean that you'll have a number of cores all
+    banging on their AVX2 microengines at the same time...
+  - This package is written in C++, the features we use are namespaces (so
+    we can avoid namespace collisions without having to prefix everything
+    with "sphincs"; otherwise, I would never have a class with as generic
+    a name as "key"), and classes (which we use to select the parameter set,
+    as well as give us convienent place to place expanded keys and whatnot.
+    We don't use any of the more advanced features, such as templates or
+    RTTI; we do use pointers to member functions at times.
+    - I do provide a memory-safe version of the sign function (using an
+      STL-defined unique_ptr object); this version will also throw an
+      exception on an error.  It's up to the application if it wants to use
+      this version or not.
+  - One thing I'm not pleased with is the amount of internal stuff C++
+    insists we place into api.h; yes, we've made most of that protected (so,
+    in theory, the application shouldn't need to worry about it), however
+    (IMHO) it'd be cleaner if it wasn't there at all.
+  - I also note that C++ (or at least, my compiler) apparently doesn't like
+    VLAs (even for C POD types).  I suppose that their prefered solution is
+    to use new with some smart pointer; I'm not that thrilled with that idea
+    (especially from a child thread, yes, their memory allocation logic is
+    probably thread-safe; I'd prefer not have to take that on faith);
+    I've tried to worse case the array sizes (if feasible) or reorganize the
+    logic to use smaller fixed sized array (if not).
+  - As for source file layout, I organized things in ways that appeared
+    logical to me, but also so that sources that were expected to be used
+    by only some of the applications were in their own files (so that a static
+    linker would find it easy to not include them if the application didn't
+    use a parameter set that needed them, not that's that big of a deal for
+    the platforms this is expected to run on).
