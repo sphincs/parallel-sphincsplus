@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string>
-#include <immintrin>
+#include <immintrin.h>
 #include "api.h"
 
 namespace sphincs_plus {

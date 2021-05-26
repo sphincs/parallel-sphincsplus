@@ -29,7 +29,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #error Expecting a little-endian platform
 #endif
 
-namespace sphincs_plus {
+using namespace sphincs_plus;
 
 typedef unsigned char UINT8;
 typedef unsigned long long int UINT64;
@@ -920,8 +920,8 @@ size_t KeccakF1600times4_FastLoop_Absorb(void *states, unsigned int laneCount, u
         const unsigned char *dataStart = data;
 
         while(dataByteLen >= (laneOffsetParallel*3 + laneCount)*8) {
-            KeccakP1600times4_AddLanesAll(states, data, laneCount, laneOffsetParallel);
-            KeccakP1600times4_PermuteAll_24rounds(states);
+            sphincs_plus::KeccakP1600times4_AddLanesAll(states, data, laneCount, laneOffsetParallel);
+            sphincs_plus::KeccakP1600times4_PermuteAll_24rounds(states);
             data += laneOffsetSerial*8;
             dataByteLen -= laneOffsetSerial*8;
         }
@@ -1022,13 +1022,11 @@ size_t KeccakP1600times4_12rounds_FastLoop_Absorb(void *states, unsigned int lan
         const unsigned char *dataStart = data;
 
         while(dataByteLen >= (laneOffsetParallel*3 + laneCount)*8) {
-            KeccakP1600times4_AddLanesAll(states, data, laneCount, laneOffsetParallel);
-            KeccakP1600times4_PermuteAll_12rounds(states);
+            sphincs_plus::KeccakP1600times4_AddLanesAll(states, data, laneCount, laneOffsetParallel);
+            sphincs_plus::KeccakP1600times4_PermuteAll_12rounds(states);
             data += laneOffsetSerial*8;
             dataByteLen -= laneOffsetSerial*8;
         }
         return data - dataStart;
     }
 }
-
-} /* namespace sphincs_plus */

@@ -8,7 +8,7 @@ Plain C++ implementation of the Haraka256 and Haraka512 permutations.
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <immintrin>
+#include <immintrin.h>
 
 #include "api.h"
 #include "haraka.h"

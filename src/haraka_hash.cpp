@@ -4,7 +4,7 @@
  * robust parameter sets
  */
 #include <string.h>
-#include <immintrin>
+#include <immintrin.h>
 
 #include "api.h"
 #include "internal.h"
