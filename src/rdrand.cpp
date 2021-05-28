@@ -13,7 +13,7 @@ namespace sphincs_plus {
 // and will completely ignore the last value returned.  It does that so that
 // the final value on the stack when we return will be that last value (that
 // we ignored), which is uncorrelated to anything we put into target
-success_flag rdrand_fill( void* target, size_t bytes_to_fill) {
+success_flag rdrand::rdrand_fill( void* target, size_t bytes_to_fill) {
     unsigned char* buffer = (unsigned char*)target;
     unsigned long long temp;
 

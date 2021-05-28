@@ -6,6 +6,7 @@
 // implementation
 //
 
+#include <iostream>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,7 +27,7 @@ const success_flag failure = false;
 // This is a function that provides randomness to us
 // We expect the application to provide this to us during key generation
 // and optionally during signing
-typedef success_flag (*random_function)( void *target, size_t num_bytes );
+typedef success_flag (*random_function)( unsigned char *target, size_t num_bytes );
 
 enum random_return {
     random_failure,    // Random generator failed
@@ -34,16 +35,35 @@ enum random_return {
     random_default };  // No random generator provided
 // This is the class we invoke when we want randomness.  Normally, this just
 // turns around and calls a random_function
-class random {
-    random_function func;
+class random
+{
 public:
-    virtual enum random_return operator()( void *target,
-                                           size_t num_bytes ) const;
-    random( random_function f = 0 ) : func(f) { ; }
+    virtual success_flag randFuncWrap(unsigned char *target,size_t num_bytes)=0;
+    virtual random_return randFunc(unsigned char *target,size_t num_bytes)
+    {
+        std::cout<<"Base randFunc"<<std::endl;
+        uint8_t * i = (uint8_t *) target;
+        if(*i == num_bytes){return random_default;} //these two lines, are BTH to get rid of stupid compiler warnings about unused variables and do absolutemly nothing besides permit "randFunc" to be callable for compile time.
+        return random_default;
+    } //this is to provide better functionality with the random_return flags, though not necessary
+    virtual ~random() =default;
+};
+
+class rdrand : public random
+{
+public:
+    success_flag randFuncWrap(unsigned char *target,size_t num_bytes) {return rdrand_fill(target,num_bytes);}
+    random_return randFunc(unsigned char *target,size_t num_bytes)
+    {
+        if(randFuncWrap(target, num_bytes)){return random_success;}
+        else{return random_failure;}
+    }
+    success_flag rdrand_fill(unsigned char* target, size_t bytes_to_fill);
+
 };
 
 // Here is a default one (should the application prefer not to be bothered)
-success_flag rdrand_fill( void *raget, size_t num_bytes );
+//success_flag rdrand_fill( void *raget, size_t num_bytes );
 
 //
 // We do hashes in several places within the Sphincs+ structure
@@ -163,7 +183,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) = 0;
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn) = 0;
     virtual void prf_addr_xn(unsigned char **out,
               const addr_t* addrxn) = 0;
@@ -218,7 +238,7 @@ protected:
 public:
     //
     // And the public API (the entire point of this)
-    success_flag generate_key_pair(const random& rand = rdrand_fill);
+    success_flag generate_key_pair(std::shared_ptr<random> rand);
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
     const unsigned char *get_public_key(void);
@@ -228,10 +248,10 @@ public:
     success_flag sign(
             unsigned char *signature, size_t len_signature_buffer,
             const unsigned char *message, size_t len_message,
-            const random& rand = rdrand_fill);
+            std::shared_ptr<random> rand);
     std::unique_ptr<unsigned char[]> sign(
             const unsigned char *message, size_t len_message,
-            const random& rand = rdrand_fill);
+            std::shared_ptr<random> rand);
     success_flag verify(
             const unsigned char *signature, size_t len_signature,
             const void *message, size_t len_message);
@@ -325,7 +345,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn);
 };
 
@@ -336,7 +356,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t  addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn);
 };
 
@@ -347,7 +367,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t  addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn);
 };
 
@@ -358,7 +378,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn);
 };
 
@@ -369,7 +389,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addr);
     virtual void f_xn(unsigned char **out, unsigned char **in,
              addr_t* addrxn);
@@ -382,7 +402,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr);
     virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
+             unsigned char **in,
              unsigned int inblocks, addr_t* addrxn);
     virtual void f_xn(unsigned char **out, unsigned char **in,
              addr_t* addrxn);

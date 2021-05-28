@@ -3,7 +3,7 @@
 #include "api.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+using namespace sphincs_plus;
 
 // Register the Sphincs+ geometry
 // We expect that this is called only during construction
@@ -61,15 +61,18 @@ size_t key::len_signature(void) {
 }
 
 /* Generate a public/private keypair */
-success_flag key::generate_key_pair(const random& rand) {
+success_flag key::generate_key_pair(std::shared_ptr<random> rand) {
     size_t n = len_hash();
     unsigned char priv_key[ LEN_PRIVKEY * max_len_hash ];
 
     /* Initialize SK_SEED, SK_PRF and PUB_SEED from seed. */
-    switch (rand( priv_key, 3*n )) {
-    case random_success: break;
+
+    switch (rand->randFunc( priv_key, 3*n )) {
+    case random_success:
+        break;
     default: return failure; // On anything other than unqualified success
     }
+
 
     /* Initialize our hash function with the private and public seeds */
     /* The root will be wrong - we'll fix that up later in this function */
@@ -118,13 +121,6 @@ void key::f_xn(unsigned char **out, unsigned char **in, addr_t* addrxn) {
 
 // The random generator we almost always use - ask the random number to
 // give us randomness
-enum random_return random::operator()( void *target, size_t num_bytes ) const {
-    if (!func) return random_default;   // No random function provided
-    if (success == func(target, num_bytes)) {
-        return random_success;
-    } else
-        return random_failure;
-}
 
 key::key(void) {
     // We currently do not have either a public nor a private key pair
@@ -133,7 +129,7 @@ key::key(void) {
 
     // We initialize the offset parameters to what most hash functions use
     // SHA-256 will update these field values
-    offset_layer = 3; 
+    offset_layer = 3;
     offset_tree = 8;
     offset_type = 19;
     offset_kp_addr1 = 23;
@@ -150,5 +146,4 @@ key::~key(void) {
     zeroize( keys, sizeof keys );  // We don't have to zeroize everything,
                                    // however let's be thorough
 }
-
-} /* namespace sphincs_plus */
+/* namespace sphincs_plus */

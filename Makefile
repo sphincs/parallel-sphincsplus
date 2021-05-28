@@ -4,7 +4,7 @@
 
 #uncomment these if this is standard or your make command is struggling to make the connection to your gcc system
 
-CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto
+CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto -mavx2 -msse2
 
 INCLUDES = -I$(CURDIR)/ -I$(CURDIR)/include/ -I$(CURDIR)/keccak4x/
 
@@ -16,17 +16,18 @@ nistDir = $(CURDIR)/nist/
 objDir = $(CURDIR)/obj/
 INSTALLDIR = $(CURDIR)/lib/
 
+
 SOURCES = $(sphincsSrcDir)sphincs-fast.cpp $(sphincsSrcDir)sign.cpp $(sphincsSrcDir)xn_hash.cpp \
 		  $(sphincsSrcDir)verify.cpp $(sphincsSrcDir)stl.cpp \
           $(sphincsSrcDir)sha256_hash.cpp $(sphincsSrcDir)sha256_simple.cpp $(sphincsSrcDir)sha256_robust.cpp \
 		  $(sphincsSrcDir)sha256.cpp $(sphincsSrcDir)mgf1_8x.cpp $(sphincsSrcDir)sha256avx.cpp \
           $(sphincsSrcDir)shake256_hash.cpp $(sphincsSrcDir)shake256_simple.cpp $(sphincsSrcDir)shake256_robust.cpp \
 		  $(sphincsSrcDir)fips202.cpp $(sphincsSrcDir)fips202x4.cpp \
-          keccak4x/KeccakP-1600-times4-SIMD256.cpp \
           $(sphincsSrcDir)haraka_hash.cpp $(sphincsSrcDir)haraka_simple.cpp $(sphincsSrcDir)haraka_robust.cpp \
 		  $(sphincsSrcDir)haraka.cpp \
 		  $(sphincsSrcDir)rdrand.cpp \
-          $(sphincsSrcDir)wots.cpp $(sphincsSrcDir)geo.cpp $(sphincsSrcDir)address.cpp $(sphincsSrcDir)utils.cpp
+          $(sphincsSrcDir)wots.cpp $(sphincsSrcDir)geo.cpp $(sphincsSrcDir)address.cpp $(sphincsSrcDir)utils.cpp \
+		  $(keccakDir)KeccakP-1600-times4-SIMD256.o
 
 OBJECTS =  $(subst .cpp,.o,$(SOURCES))
 
@@ -38,13 +39,9 @@ TEST_SOURCES =    $(sphincsSrcDir)test_sphincs.cpp $(sphincsSrcDir)test_keygen.c
 
 TESTS = test PQCgenKAT_sign test_sphincs
 
-default : $(OBJECTS)
 
-keccak4x/KeccakP-1600-times4-SIMD256.o: keccak4x/align.h keccak4x/brg_endian.h \
-					keccak4x/KeccakP-1600-times4-SnP.h \
-					keccak4x/KeccakP-1600-unrolling.macros \
-					keccak4x/SIMD256-config.h
-	$(CXX) $(CFLAGS) $(INCLUDES) -c keccak4x/KeccakP-1600-times4-SIMD256.cpp -o $@
+
+default : $(OBJECTS)
 	
 .PHONY: test
 
@@ -60,6 +57,12 @@ lib : install
 
 $(OBJECTS): %.o : %.cpp
 	$(CXX) -c $(CFLAGS) $(INCLUDES) $< -o $@
+
+$(sphincsSrcDir)keccak4x/KeccakP-1600-times4-SIMD256.o : keccak4x/align.h keccak4x/brg_endian.h \
+					keccak4x/KeccakP-1600-times4-SnP.h \
+					keccak4x/KeccakP-1600-unrolling.macros \
+					keccak4x/SIMD256-config.h
+	$(CXX) $(CFLAGS) -msse2 -mavx2 $(INCLUDES) -c keccak4x/KeccakP-1600-times4-SIMD256.cpp -o $@
 
 libSphincs.a: $(OBJECTS)
 	mkdir -p $(INSTALLDIR)

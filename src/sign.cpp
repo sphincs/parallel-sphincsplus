@@ -76,7 +76,7 @@ public:
             // threaded mode)
         if (num_thread > 1) {
             if (0 != pthread_mutex_init( &write_lock, 0 )) {
-                num_thread = 1;  // Can't create lock; fall back to 
+                num_thread = 1;  // Can't create lock; fall back to
                                  // single thread mode
             }
         }
@@ -195,7 +195,7 @@ static inline uint64_t shr(uint64_t a, unsigned shift ) {
 success_flag key::sign(
             unsigned char* signature, size_t len_signature_buffer,
             const unsigned char* message, size_t len_message,
-            const random& rand) {
+            std::shared_ptr<random> rand) {
     // Make sure this key has the private key loaded
     if (!have_private_key) return false;
 
@@ -215,7 +215,7 @@ success_flag key::sign(
 
     // Step 2 - generate the randomness
     unsigned char opt[ max_len_hash ];
-    switch (rand( opt, n )) {
+    switch (rand->randFunc( opt, n )) {
     case random_success:
         break;
     case random_failure: default:
@@ -508,7 +508,7 @@ void task::build_fors_tree(work_center *w) {
 void task::build_wots_sig(work_center *w) {
     key& p = *w->p;
     unsigned merkle_h = p.merkle_height();
-    unsigned char wots_signature[ max_wots_bytes ]; 
+    unsigned char wots_signature[ max_wots_bytes ];
 
     uint64_t tree_idx = shr( w->geo.idx_tree, merkle_h * level );
     unsigned leaf_idx;
