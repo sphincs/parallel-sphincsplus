@@ -1,6 +1,9 @@
 #include "api.h"
 #include "internal.h"
 
+/// \file wots.cpp
+/// \brief Routines dealing with WOTS signatures
+
 namespace sphincs_plus {
 
 //

@@ -3,6 +3,9 @@
 #include "api.h"
 #include "internal.h"
 
+/// \file sphincs-fast.cpp
+/// \brief This contains various miscillaneous routines for Sphincs+
+
 namespace sphincs_plus {
 
 // Register the Sphincs+ geometry
@@ -110,14 +113,14 @@ const unsigned char* key::get_root(void) {
     return keys + PRIVKEY_ROOT_OFFSET * len_hash();
 }
 
-// The default F function falls back to the thash
-// This is used for SHA-256 and SHAKE-256 - Haraka uses a different definition
+/// The default F function falls back to the thash
+/// This is used for SHA-256 and SHAKE-256 - Haraka uses a different definition
 void key::f_xn(unsigned char **out, unsigned char **in, addr_t* addrxn) {
     thash_xn(out, in, 1, addrxn);
 }
 
-// The random generator we almost always use - ask the random number to
-// give us randomness
+/// The random generator we almost always use - ask the random number to
+/// give us randomness
 enum random_return random::operator()( void *target, size_t num_bytes ) const {
     if (!func) return random_default;   // No random function provided
     if (success == func(target, num_bytes)) {
@@ -126,6 +129,9 @@ enum random_return random::operator()( void *target, size_t num_bytes ) const {
         return random_failure;
 }
 
+/// Construct a key object (with no key yet).  This only does the part of
+/// the job that doesn't depend on the parameter set; the child contructor
+/// will perform the rest
 key::key(void) {
     // We currently do not have either a public nor a private key pair
     have_public_key = false;

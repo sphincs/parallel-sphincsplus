@@ -3,10 +3,15 @@
 #include "api.h"
 #include "internal.h"
 
+/// \file geo.cpp
+/// \brief This contains hash the message into the fields used by Sphincs+,
+/// as well as to initialize the fixed fields in the geo structure
+
 namespace sphincs_plus {
 
-//
-// This lays out where things are within a signature
+/// This lays out where things are within a signature
+/// That is, the offsets where the various FORS, WOTS+ and Merkle tree
+/// authentication paths occur within the signature
 size_t key::initialize_geometry(struct signature_geometry& geo) {
     size_t n = len_hash();
 
@@ -24,14 +29,26 @@ size_t key::initialize_geometry(struct signature_geometry& geo) {
     return offset;
 }
 
+///
+/// This is a helper class that extracts bits fields from the h_msg
+/// output.  The individual bit fields will be used to select the
+/// various FORS trees and position within the hypertree
 class bit_extract {
-    unsigned char *p;
-    size_t len;    // Number of bytes remaining
-    unsigned bits_in_byte; // Number of bits remaining in the current byte
+    unsigned char *p; /// Where we are in the string
+    size_t len;    /// Number of bytes remaining
+    unsigned bits_in_byte; /// Number of bits remaining in the current byte
 public:
+    /// Create a bit_extract object, extracting bits from input
+    /// @param[in] input  The buffer containing the input
+    /// @param[in] input_len The length of the input
     bit_extract( unsigned char *input, size_t input_len ) {
         p = input; len = input_len; bits_in_byte = 8;
     }
+    /// Extract the next n bits from the buffer, crossing byte boundaries
+    /// if necessary.  This will also step the extractor to the next
+    /// position in the buffer
+    /// @param[in] bits Number of bits to extract
+    /// \return The extracted bit field
     int extract_bits(unsigned bits) {
         unsigned r = 0;
         unsigned count_bits = 0;
@@ -49,6 +66,14 @@ public:
         }
         return r;
     }
+    /// Extract the next n bits from the buffer as an integer.  Note that
+    /// this actually reads the next ceil(bits/8) bytes, and ignores the
+    /// msbits if bits isn't a multiple of 8.  This is behavior distinct
+    /// from the extra_bits function - for whatever reason, Sphincs+ uses
+    /// this behavior to read the Merkle tree/Hypertree locations from
+    /// the bitstream
+    /// @param[in] bits Number of bits to extract
+    /// \return The extracted bit field
     uint64_t extract_int(unsigned bits) {
         int bytes = (bits + 7) / 8;  // Number of bytes to extract
         uint64_t r = bytes_to_ull(p, bytes);
@@ -56,12 +81,13 @@ public:
         bits_in_byte = 8;
         return r & ((~(uint64_t)0) >> (64 - bits));
     }
+    /// Skip to the next byte boundary
     void round(void) { if (bits_in_byte != 8) {
                            p++; len--; bits_in_byte = 8; } }
 };
 
-//
-// This converts a message (and randomness) into the FORS/Merkle indices
+///
+/// This converts a message (and randomness) into the FORS/Merkle indices
 void key::hash_message(struct signature_geometry& geo,
            const unsigned char *r, 
            const unsigned char *message, size_t len_message ) {
