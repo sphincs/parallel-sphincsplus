@@ -4,19 +4,22 @@
 #include "api.h"
 #include "immintrin.h"
 
+/// \file rdrand.cpp
+/// \brief This contains the routine to get randomness using rdrand_fill
+
 namespace sphincs_plus {
 
-//
-// Call rdrand to fill the buffer with randomness
-//
-// Subtle note: this will call _rdrand64_step one more time than necessary,
-// and will completely ignore the last value returned.  It does that so that
-// the final value on the stack when we return will be that last value (that
-// we ignored), which is uncorrelated to anything we put into target
+///
+/// Call rdrand to fill the buffer with randomness
 success_flag rdrand_fill( void* target, size_t bytes_to_fill) {
     unsigned char* buffer = (unsigned char*)target;
     unsigned long long temp;
 
+    // Subtle note: this will call _rdrand64_step one more time than necessary,
+    // and will completely ignore the last value returned.  It does that so
+    // that the final value on the stack when we return will be that last
+    // value (that we ignored), which is uncorrelated to anything we put into
+    // target
     for (;;) {
 	if (0 == _rdrand64_step( &temp )) {
             // rdrand failed

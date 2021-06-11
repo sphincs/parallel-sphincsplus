@@ -1,5 +1,6 @@
 /*
- * This file has support routines that compute multiple hashes at once
+ * \file xn_hash.cpp
+ * \brief This has routines that generate the tree auth paths and roots
  */ 
 #include <string.h>
 #include "api.h"
@@ -7,17 +8,25 @@
 
 namespace sphincs_plus {
 
+///
+/// The object that will generate num_track different WOTS public keys
+/// for num_track different Merkle leaves of the same Merkle tree
 class gen_wots_leaves : public leaf_gen {
-    key& k;
-    unsigned num_track;
-    unsigned wots_digits;
-    unsigned n;
-    int wots_len;
-
-    unsigned wots_sign_leaf;
-    addr_t leaf_addr[max_track];
-    addr_t pk_addr[max_track];
+    key& k;                      //<! The key we're generating for
+    unsigned num_track;          //<! The number of trees we genrate for this
+                                 //<! tree
+    unsigned wots_digits;        //<! The number of digits within a WOTS
+                                 //<! signature for this key
+    unsigned n;                  //<! The length of a hash for this key
+    int wots_len;                //<! The total length (in bytes) of a
+                                 //<! WOTS signature
+    addr_t leaf_addr[max_track]; //<! The address structures to be used to
+                                 //<! compute both the PRF and the WOTS chains
+    addr_t pk_addr[max_track];   //<! The address structures used to compute
+                                 //<! the hashes of the WOTS public keys
 public:
+    /// Initialize a gen_wots_leaves object to be used for this key
+    /// Note that it cannot be used until we call the setup function
     gen_wots_leaves( key& tk ) : k(tk) {
         num_track = k.num_track();
         wots_digits = k.wots_digits();
@@ -25,7 +34,11 @@ public:
         wots_len = k.wots_bytes();
     }
 
-    void setup( addr_t wots_addr, uint32_t idx_leaf ) {
+    /// Set up the gen_wots_leaves object to compute the WOTS public keys for
+    /// a specific merkle tree
+    /// @param[in] wots_addr The address structure to use; it contains
+    ///                      the Merkle tree address
+    void setup( addr_t wots_addr ) {
         memset( leaf_addr, 0, addr_bytes*num_track);
         memset( pk_addr, 0, addr_bytes*num_track);
         for (unsigned j=0; j<num_track; j++) {
@@ -34,10 +47,12 @@ public:
             k.copy_subtree_addr(leaf_addr[j], wots_addr);
             k.copy_subtree_addr(pk_addr[j], wots_addr);
         }
-        wots_sign_leaf = idx_leaf;
     }
 
-    virtual void operator()(unsigned char*, uint32_t idx);
+    /// This is the function to generate the WOTS public keys
+    /// @param[in] buffer Where to place the public keys
+    /// @param[in] idx The index of the first node
+    virtual void operator()(unsigned char* buffer, uint32_t idx);
 };
 
 //
@@ -64,7 +79,7 @@ void key::merkle_sign(uint8_t *sig, unsigned char *root,
         copy_subtree_addr(tree_addrxn[j], tree_addr);
     }
 
-    info.setup( wots_addr, idx_leaf );
+    info.setup( wots_addr );
 
     // If we're building a half tree, then we reduce
     // the tree height we walk by one
@@ -81,20 +96,34 @@ void key::merkle_sign(uint8_t *sig, unsigned char *root,
                 tree_addrxn);
 }
 
+///
+/// The object that will generate num_track different leaves of the
+/// FORS tree.  It also outputs the specific revealed FORS leaf as a side
+/// effect
 class gen_fors_leaves : public leaf_gen {
-    key& k;
-    unsigned num_track;
-    unsigned n;
-    unsigned revealed_idx;       // The index of the leaf to output
-                                 // Includes idx_offset
-    unsigned char *leaf_buffer;  // Where to write the leaf
-    addr_t leaf_addrx[max_track];
+    key& k;                      //<! The key we're generating for
+    unsigned num_track;          //<! The number of trees we genrate for this
+                                 //<! tree
+    unsigned n;                  //<! The length of a hash for this key
+    unsigned revealed_idx;       //<! The index of the leaf to output
+                                 //<! Includes idx_offset
+    unsigned char *leaf_buffer;  //<! Where to write the authentication path
+    addr_t leaf_addrx[max_track]; //<! The address structures to use
 public:
+    /// Initialize a gen_fors_leaves object to be used for this key
+    /// Note that it cannot be used until we call the setup function
     gen_fors_leaves( key& tk ) : k(tk) {
         num_track = k.num_track();
         n = k.len_hash();
     }
 
+    /// Set up the gen_fors_leaves object to compute the FORS leaves for
+    /// a specific FORS tree
+    /// @param[in] fors_addr The address structure to use; it contains both
+    ///                      the Merkle tree address and the FORS tree index
+    /// @param[in] idx       The index for the FORS leave to output when we
+    ///                      happen upon it
+    /// @param[in] buffer    Where to write this leaf
     void setup( addr_t fors_addr, uint32_t idx, unsigned char *buffer) {
         memset( leaf_addrx, 0, addr_bytes * num_track );
         for (unsigned i=0; i<num_track; i++) {
@@ -105,6 +134,9 @@ public:
         leaf_buffer = buffer;
     }
 
+    /// This is the function to generate the FORS leaves
+    /// @param[in] buffer Where to place the FORS leaves
+    /// @param[in] idx The index of the first node
     virtual void operator()(unsigned char*, uint32_t idx);
 };
 
@@ -377,11 +409,10 @@ void gen_wots_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
             wots_digits, pk_addr);
 }
 
-/*
- * This generates num_track sequential FORS private keys
- * This also generates the revealed leaf if leaf_idx indicates that it
- * is the one being revealed
- */
+///
+/// This generates num_track sequential FORS private keys
+/// This also generates the revealed leaf if leaf_idx indicates that it
+/// is the one being revealed
 void gen_fors_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
 
     /* Only set the parts that the caller doesn't set */

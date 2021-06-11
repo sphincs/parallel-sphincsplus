@@ -4,9 +4,9 @@
 #include "api.h"
 #include "internal.h"
 
-//
-// This file contains the accessor functions for the addr_t fields, at least
-// the ones that were complicated enough not to inline
+/// \file address.cpp
+/// \brief This contains the accessor functions for the addr_t fields
+// at least, the ones that were complicated enough not to inline
 
 namespace sphincs_plus {
 
