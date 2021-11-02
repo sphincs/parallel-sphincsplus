@@ -7,8 +7,8 @@
 // into 'tasks', where each task can be run independently.  We then spawn
 // off a series of threads, and have each one perform the next one on the
 // queue (with the threads pulling tasks off the queue in a
-// 'first-come-first-serve' manner).  When the queue is empty, we have fully
-// generated the signature
+// 'first-come-first-serve' manner).  When all the tasks are done and the
+// queue is empty, we have fully generated the signature
 //
 // Deviations from this overall logic:
 // - There's some computations that must be run first (e.g. hashing the
