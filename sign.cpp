@@ -4,11 +4,11 @@
 // the main reason for this package)
 //
 // Here is the general design: we split up the signature generation process
-// into 'tasks', where each task can be run independently.  We then spawn
-// off a series of threads, and have each one perform the next one on the
-// queue (with the threads pulling tasks off the queue in a
-// 'first-come-first-serve' manner).  When all the tasks are done and the
-// queue is empty, we have fully generated the signature
+// into 'tasks', where each task can be run independently, and place those
+// tasks into a queue.  We then spawn off a series of threads, and have each
+// one perform the next one on the queue (with the threads pulling tasks off
+// the queue in a 'first-come-first-serve' manner).  When all the tasks are
+// done and the queue is empty, we have fully generated the signature
 //
 // Deviations from this overall logic:
 // - There's some computations that must be run first (e.g. hashing the
@@ -49,6 +49,10 @@
 namespace sphincs_plus {
 
 class task;
+	
+//
+// This is the object that coordinates all the tasks being done for a
+// single signature operation
 class work_center {
     task* head_q;           // For these two pointers, the thread must be
     task* tail_q;           // locked before reading/writing these (if
@@ -113,6 +117,11 @@ public:
     void do_job(void);        // Perform tasks until they run out
 };
 
+//
+// This is the object that performs a specific task.
+// Note that, sometimes, we'll reuse this object for another task
+// (if we perform another task immediately after finishing the
+// previous one)
 class task {
         // What task we have been assigned
     void (task::*func)(work_center *);
@@ -137,10 +146,14 @@ public:
 };
 
 // Keep on doing things on the honey-do list until we run out
+// Every thread we've enlisted invokes this
 void work_center::do_job(void) {
     task *t;
     while ((t = next_task()) != 0) {
         t->do_it(this);
+	// Note: we don't have to worry about memory leaks; all
+	// the task structures come from the same automatic array
+	// and so will all be freed when we're done
     }
 }
 
@@ -192,6 +205,8 @@ static inline uint64_t shr(uint64_t a, unsigned shift ) {
         return a >> shift;
 }
 
+//
+// The function that generates a signature
 success_flag key::sign(
             unsigned char* signature, size_t len_signature_buffer,
             const unsigned char* message, size_t len_message,
@@ -494,12 +509,7 @@ void task::build_fors_tree(work_center *w) {
     if (all_fors_trees_done) {
         // We just finished off the final FORS tree; hash them together to
         // come up with the FORS root
-#if 0
-        set_task( &task::hash_fors, 0 );
-        w->enqueue(this);
-#else
 	hash_fors(w);
-#endif
     }
 }
 
