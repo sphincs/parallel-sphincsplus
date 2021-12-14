@@ -127,15 +127,20 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
                           const uint8_t *m, size_t mlen, const uint8_t *sk)
 {
     KEY_TYPE k;
+    sphincs_plus::success_flag f;
 
-    k.set_private_key(sk);
+    k.set_validate_private_key(false); // DEBUG HACK
+    f = k.set_private_key(sk);
+    if (f != sphincs_plus::success) {
+        return -1;  /* Invalid private key */
+    }
 
     *siglen = k.len_signature();
 
     // Here we would call k.set_num_thread(1) if we want to disable
     // threading
  
-    sphincs_plus::success_flag f = k.sign(sig, *siglen, m, mlen, nist_random);
+    f = k.sign(sig, *siglen, m, mlen, nist_random);
 
     if (f != sphincs_plus::success) {
         return -1;
@@ -173,7 +178,9 @@ int crypto_sign(unsigned char *sm, unsigned long long *smlen,
                 const unsigned char *sk)
 {
     KEY_TYPE k;
-    k.set_private_key(sk);
+    if (sphincs_plus::success != k.set_private_key(sk)) {
+        return -1;  /* Invalid private key */
+    }
 
     size_t siglen = k.len_signature();
 
