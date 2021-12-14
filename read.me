@@ -37,6 +37,10 @@ Here is how this package is used:
      Notes:
      - priv_key is a byte array containing the private key in the format
        specified in the Sphincs+ documentation
+     - This can optionally validate the private key (for example, to check
+       if the key is actually for this parameter set).  To disable this
+       checking (which can take a few milliseconds), first do
+           signer.set_validate_private_key(false);
 
    - Load an existing public key (if all you need to do is verify)
          signer.set_public_key(public_key);

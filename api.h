@@ -140,6 +140,9 @@ private:
     bool have_private_key; //<! Set if we have a private key
     bool have_public_key;  //<! Set if we have a public key
 
+    bool validate_private_key; //<! Set if we validate the private key when
+                           //<! we load it
+
     unsigned num_thread;   //<! Number of threads we try to use while
                            //<! signing.  We allow the application to tell
                            //<! us what this should be
@@ -438,7 +441,9 @@ public:
     /// Import a private key; the private key is assumed to be in the
     /// standard Sphincs+ format.
     /// @param[in] private_key Pointer to the private key
-    virtual void set_private_key(const unsigned char *private_key);
+    /// \return failure if the private key does not validate (e.g. it's
+    /// for a different parameter set)
+    virtual success_flag set_private_key(const unsigned char *private_key);
 
     /// Get a copy of the public key.  Note that this returns a pointer
     /// to the golden image within the key, hence taking this pointer,
@@ -524,6 +529,13 @@ public:
     ///             thread
     void set_num_thread(unsigned n) { num_thread = n; }
 
+    /// Set whether we should validate any private keys we load
+    /// This is a decent error check; however it does take some time, so
+    /// we give a way to turn it off
+    void set_validate_private_key(bool validate) {
+        validate_private_key = validate;
+    }
+
     virtual ~key(void);
 };
 
@@ -556,7 +568,7 @@ protected:
     sha256_hash(void);
 public:
     virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
+    virtual success_flag set_private_key(const unsigned char *private_key);
 };
 
 /// This abstract class is for SHAKE256-based parameter sets
@@ -578,7 +590,7 @@ protected:
               const unsigned char *msg, size_t len_msg );
 public:
     virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
+    virtual success_flag set_private_key(const unsigned char *private_key);
     virtual ~shake256_hash();
 };
 
@@ -603,7 +615,7 @@ protected:
     virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addrxn) = 0;
 public:
     virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
+    virtual success_flag set_private_key(const unsigned char *private_key);
     virtual ~haraka_hash(); // To zeroize priv_seed_expanded
 };
 

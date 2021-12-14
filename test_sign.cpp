@@ -150,7 +150,10 @@ bool sign_test::run( sphincs_plus::key& k, sphincs_plus::key& p,
 
     // Now pass the private key to the other key, and make sure that
     // works
-    p.set_private_key( k.get_private_key() );
+    if (!p.set_private_key( k.get_private_key() )) {
+        printf( "*** PRIVATE KEY SET FAILURE\n" );
+        return false;
+    }
     if (!sign1( p, msg, sizeof msg, sig.get() )) {
         printf( "*** SIGNATURE GENERATION FAILURE 2\n" );
         return false;

@@ -69,10 +69,14 @@ void haraka_hash::set_public_key(const unsigned char *public_key) {
     expand_seed( pub_seed_expanded, get_public_seed(), len_hash() );
 }
 
-void haraka_hash::set_private_key(const unsigned char *private_key) {
-    key::set_private_key(private_key);
-    expand_seed( pub_seed_expanded, get_public_seed(), len_hash() );
-    expand_seed( priv_seed_expanded, get_secret_seed(), len_hash() );
+success_flag haraka_hash::set_private_key(const unsigned char *private_key) {
+    unsigned n = len_hash();
+    expand_seed( pub_seed_expanded,
+		         private_key + PRIVKEY_PUBLICKEY_OFFSET * n, n );
+    expand_seed( priv_seed_expanded,
+		         private_key + PRIVKEY_SECRETSEED_OFFSET * n, n );
+
+    return key::set_private_key(private_key);
 }
 
 haraka_hash::~haraka_hash(void) {

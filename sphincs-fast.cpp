@@ -30,10 +30,39 @@ void key::set_public_key(const unsigned char *public_key) {
     have_public_key = true;
 }
 
-void key::set_private_key(const unsigned char *private_key) {
-    memcpy( keys, private_key, LEN_PRIVKEY * len_hash() );
+success_flag key::set_private_key(const unsigned char *private_key) {
+    size_t n = len_hash();
+    memcpy( keys, private_key, LEN_PRIVKEY * n );
+
+    // If we've been asked, check if the private key is self-consistent
+    if (validate_private_key) {
+
+	// Compute what the root should be (based on the seed)
+        addr_t top_tree_addr = {0};
+        addr_t wots_addr = {0};
+        set_layer_addr(top_tree_addr, d() - 1);
+        set_layer_addr(wots_addr, d() - 1);
+	unsigned char computed_root[ max_len_hash ];
+        merkle_sign(NULL, computed_root, 
+                wots_addr, top_tree_addr,
+                ~0 /* ~0 means "don't bother generating an auth path */ );
+
+	// Check to see if we computed the same public value we've been
+	// given
+	if (0 != memcmp( computed_root, keys + PRIVKEY_ROOT_OFFSET*n, n )) {
+            // We got something different; fail.  This is most likely because
+	    // the private key we were given actually corresponded to a
+	    // different parameter set
+            have_private_key = false;
+            have_public_key = false;
+            return failure;
+	}
+    }
+
     have_private_key = true;
     have_public_key = true;
+
+    return success;
 }
 
 const unsigned char* key::get_public_key(void) {
@@ -74,9 +103,14 @@ success_flag key::generate_key_pair(const random& rand) {
     default: return failure; // On anything other than unqualified success
     }
 
+    /* Disable set_private_key's check on the root */
+    bool current_validate_private_key = validate_private_key;
+    validate_private_key = false;
+
     /* Initialize our hash function with the private and public seeds */
     /* The root will be wrong - we'll fix that up later in this function */
-    set_private_key(priv_key);
+
+    (void)set_private_key(priv_key);
 
    /* Compute the root node of the top-most subtree */
     addr_t top_tree_addr = {0};
@@ -93,6 +127,10 @@ success_flag key::generate_key_pair(const random& rand) {
     /* And set our internal copy of the private key (now with the correct */
     /* root value) */
     set_private_key(priv_key);
+
+    // Now that we've set the private key, we can restore the user-specified
+    // validation setting
+    validate_private_key = current_validate_private_key;
 
     zeroize(priv_key, LEN_PRIVKEY * n);
 
@@ -150,6 +188,9 @@ key::key(void) {
     offset_tree_index = 28;
 
     num_thread = default_thread;
+
+    // By default, we validate private keys when we load them
+    validate_private_key = true;
 }
 
 key::~key(void) {

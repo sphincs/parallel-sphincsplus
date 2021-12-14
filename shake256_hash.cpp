@@ -81,10 +81,14 @@ void shake256_hash::set_public_key(const unsigned char *public_key) {
     shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
 }
 
-void shake256_hash::set_private_key(const unsigned char *private_key) {
-    key::set_private_key(private_key);
-    shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
-    shake256_precompute( &pre_priv_seed, get_secret_seed(), len_hash() );
+success_flag shake256_hash::set_private_key(const unsigned char *private_key) {
+    unsigned n = len_hash();
+    shake256_precompute( &pre_pub_seed,
+		         private_key + PRIVKEY_PUBLICKEY_OFFSET * n, n );
+    shake256_precompute( &pre_priv_seed,
+		         private_key + PRIVKEY_SECRETSEED_OFFSET * n, n );
+
+    return key::set_private_key(private_key);
 }
 
 unsigned shake256_hash::num_track(void) {

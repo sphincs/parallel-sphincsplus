@@ -35,9 +35,10 @@ void sha256_hash::set_public_key(const unsigned char *public_key) {
     initialize_public_seed( get_public_seed() );
 }
 
-void sha256_hash::set_private_key(const unsigned char *private_key) {
-    key::set_private_key(private_key);
-    initialize_public_seed( get_public_seed() );
+success_flag sha256_hash::set_private_key(const unsigned char *private_key) {
+    initialize_public_seed( private_key +
+		                   PRIVKEY_PUBLICSEED_OFFSET * len_hash() );
+    return key::set_private_key(private_key);
 }
 
 /*
