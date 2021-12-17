@@ -80,7 +80,7 @@ public:
     /// Create a work_center object
     /// @param[in] parm The key we are signing with
     /// @param[out] sig_buffer Where the signature will go
-    work_center(key* parm, unsigned char* sig_buffer) {
+    work_center(key* parm, unsigned char* sig_buffer, unsigned m) {
         p = parm; sig = sig_buffer;
         head_q[0] = head_q[1] = tail_q[0] = tail_q[1] = 0;
         fors_done[0] = fors_done[1] = 0;
