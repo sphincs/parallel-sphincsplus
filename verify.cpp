@@ -1,10 +1,11 @@
-//
-// This is the module that verifies a Sphincs+ signature
-//
-// There's not a great deal of advantage of this over the reference code
-// (except for our support for multiple parameter sets simultaneously),
-// however this package would feel incomplete if we didn't provide it
-//
+///
+/// \file verify.cpp
+/// \brief This is the module that verifies a Sphincs+ signature
+///
+/// There's not a great deal of advantage of this over the reference code
+/// (except for our support for multiple parameter sets simultaneously),
+/// however this package would feel incomplete if we didn't provide it
+///
 #include <string.h>
 #include <stdint.h>
 #include "api.h"

@@ -5,7 +5,6 @@
  */ 
 #include <string.h>
 #include "api.h"
-#include "xn_internal.h"
 #include "internal.h"
 #include "fips202.h"
 #include "fips202x4.h"
@@ -15,9 +14,6 @@ namespace sphincs_plus {
 /*
  * 4-way parallel version of prf_addr; takes 4x as much input and output
  * This is SHAKE-256 specific
- *
- * Idea for the future: this might be more efficient if we were able to
- * restore the key-specific parts (avoiding the cost of the first absorb)
  */
 void shake256_hash::prf_addr_xn(unsigned char **out,
                 const addr_t* addrx4)

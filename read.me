@@ -199,9 +199,7 @@ Design decisions:
   - I decided to support all the various Sphincs+ parameter sets (even the
     ones that appear somewhat pointless, such as L5+Haraka).
   - I decided to avoid globals; all memory is within the class object or
-    within automatics.  This is one gripe I have with the reference code,
-    which relies on globals heavily (and one which C++ makes easy; just
-    turn them into class members).
+    within automatics.
   - I decided to always use the AVX2/AES_NI instructions to accelerate things;
     my feeling is that if you are interested in maximal speed (the point of
     this package), you'll want to run on a CPU with those instructions

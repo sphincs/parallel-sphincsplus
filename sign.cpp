@@ -1,45 +1,49 @@
-//
-// This is the module that actually generates a Sphincs+ signature
-// It uses multithreading to speed the signature generation process (which is
-// the main reason for this package)
-//
-// Here is the general design: we split up the signature generation process
-// into 'tasks', where each task can be run independently.  We then spawn
-// off a series of threads, and have each one perform the next one on the
-// queue (with the threads pulling tasks off the queue in a
-// 'first-come-first-serve' manner).  When the queue is empty, we have fully
-// generated the signature
-//
-// Deviations from this overall logic:
-// - There's some computations that must be run first (e.g. hashing the
-//   message) before we can start any such threading.  If the message being
-//   signed is long, this nonparalleizable time may be considerable
-// - Some tasks need intermediate results from other tasks (and hence must
-//   wait for those previous tasks).  We deal with this by having the previous
-//   tasks schedule the next ones (when the intermediate results are
-//   available)
-//
-// Of course, when you have multiple threads working on the same task, you
-// must have rules about 'who can touch what memory'.  Here are the rules
-// we use:
-// - Memory is effectively divided into three sections; thread specific
-//   memory, output buffers, and the common area
-// - Thread specific memory (which consists of thread-automatic data and
-//   the task class members itself) is free for the thread to use at will
-// - Output buffers are the signature being generated, and the fors_root
-//   and merkle_root array of the work_center.  Before writing into one
-//   of these structures, the thread must lock() first (and then unlock()
-//   afterwards.
-//   - Note that the fors_root and merkle_root arrays are used as data
-//     input to later tasks; however those later takes will run only after
-//     the task that generated that output has completed the update and
-//     unlock()'ed
-//   - Common area - essentially, everything else.  This is treated as
-//     read only by everyone (and so no lock()s are required).
-// The enqueue/next_task logic also references common data, but also does
-// a lock/unlock when doing so - those data members are not referenced by
-// tasks (and the work_center object itself has this logic)
-//
+///
+/// \file sign.cpp
+/// \brief This is the module that actually generates a Sphincs+ signature
+///
+///
+/// This is the module that actually generates a Sphincs+ signature
+/// It uses multithreading to speed the signature generation process (which is
+/// the main reason for this package)
+///
+/// Here is the general design: we split up the signature generation process
+/// into 'tasks', where each task can be run independently, and place those
+/// tasks into a queue.  We then spawn off a series of threads, and have each
+/// one perform the next one on the queue (with the threads pulling tasks off
+/// the queue in a 'first-come-first-serve' manner).  When all the tasks are
+/// done and the queue is empty, we have fully generated the signature
+///
+/// Deviations from this overall logic:
+/// - There's some computations that must be run first (e.g. hashing the
+///   message) before we can start any such threading.  If the message being
+///   signed is long, this nonparalleizable time may be considerable
+/// - Some tasks need intermediate results from other tasks (and hence must
+///   wait for those previous tasks).  We deal with this by having the previous
+///   tasks schedule the next ones (when the intermediate results are
+///   available)
+///
+/// Of course, when you have multiple threads working on the same task, you
+/// must have rules about 'who can touch what memory'.  Here are the rules
+/// we use:
+/// - Memory is effectively divided into three sections; thread specific
+///   memory, output buffers, and the common area
+/// - Thread specific memory (which consists of thread-automatic data and
+///   the task class members itself) is free for the thread to use at will
+/// - Output buffers are the signature being generated, and the fors_root
+///   and merkle_root array of the work_center.  Before writing into one
+///   of these structures, the thread must lock() first (and then unlock()
+///   afterwards.
+///   - Note that the fors_root and merkle_root arrays are used as data
+///     input to later tasks; however those later takes will run only after
+///     the task that generated that output has completed the update and
+///     unlock()'ed
+///   - Common area - essentially, everything else.  This is treated as
+///     read only by everyone (and so no lock()s are required).
+/// The enqueue/next_task logic also references common data, but also does
+/// a lock/unlock when doing so - those data members are not referenced by
+/// tasks (and the work_center object itself has this logic)
+///
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
@@ -49,28 +53,34 @@
 namespace sphincs_plus {
 
 class task;
+/// This is the object that coordinates all the tasks being done for a
+/// single signature operation
 class work_center {
-    task* head_q[2];        // For these pointers, the thread must be
-    task* tail_q[2];        // locked before reading/writing these (if
-                            // we're threading)
+    task* head_q[2];        //<! For these pointers, the thread must be
+    task* tail_q[2];        //<! locked before reading/writing these (if
+                            //<! we're threading)
     unsigned mask;
-    uint64_t fors_done[2];  // Bitmask of which fors trees we have completed
-    uint64_t fors_target;   // What the bitmask will look like when we've
-                            // done them all
+    uint64_t fors_done[2];  //<! Bitmask of which fors trees we have completed
+    uint64_t fors_target;   //<! What the bitmask will look like when we've
+                            //<! done them all
     friend class task;
     friend class worker;
-    unsigned num_thread;    // Target number of threads (including the
-                            // original thread)
-    pthread_mutex_t write_lock; // If threads are active, this must be locked
-                             // if the thread is writing to an output buffer
+    unsigned num_thread;    //<! Target number of threads (including the
+                            //<! original thread)
+    pthread_mutex_t write_lock; //<! If threads are active, this must be locked
+                             //<! if the thread is writing to an output buffer
 public:
-    key* p;                 // The key we're signing with
-    unsigned char* sig;     // Where to write the signature
-    bool detected_fault;    // Did we detect a fault during the signature
-                            // process
-    uint32_t validated_wots; // Which WOTS signatures have we verified
-    uint32_t wrote_wots;    // Which WOTS signatures have we written
-    work_center(key* parm, unsigned char* sig_buffer, unsigned m) {
+    key* p;                 //<! The key we're signing with
+    unsigned char* sig;     //<! Where to write the signature
+    bool detected_fault;    //<! Did we detect a fault during the signature
+                            //<! process
+    uint32_t validated_wots; //<! Which WOTS signatures have we verified
+    uint32_t wrote_wots;    //<! Which WOTS signatures have we written
+  
+    /// Create a work_center object
+    /// @param[in] parm The key we are signing with
+    /// @param[out] sig_buffer Where the signature will go
+    work_center(key* parm, unsigned char* sig_buffer) {
         p = parm; sig = sig_buffer;
         head_q[0] = head_q[1] = tail_q[0] = tail_q[1] = 0;
         fors_done[0] = fors_done[1] = 0;
@@ -91,58 +101,82 @@ public:
         wrote_wots = 0;
         mask = m;
     }
+
+    /// Close up shop
     ~work_center() {
         if (num_thread > 1) {
             pthread_mutex_destroy( &write_lock );
         }
     }
+
+    /// Must be called when a thread is about to write to a common area
+    /// This is a mutex shared between threads - the time taken between
+    /// lock() and unlock() must be small
     void lock(void) {
         if (num_thread > 1)
             pthread_mutex_lock( &write_lock );
     }
+    /// Must be called when a thread is done writing to a common area
     void unlock(void) {
          if (num_thread > 1)
              pthread_mutex_unlock( &write_lock );
     }
+    /// Where the various parts of the signature are, as well as which
+    /// FORS/Merkle trees we'll be usig
     struct signature_geometry geo;
 
-        // This will hold the root values for the various FORS trees
+        /// This will hold the root values for the various FORS trees
     unsigned char fors_root[2][max_fors_trees*max_len_hash];
 
-        // This will hold the values to be signed by the Merkle trees
+        /// This will hold the values to be signed by the Merkle trees
     unsigned char merkle_root[2][max_merkle_tree][max_len_hash];
 
-        // This will hold the values to be signed by each half of the Merkle
-        // tree
+        /// This will hold the values to be signed by each half of the Merkle
+        /// tree
     unsigned char half_merkle_root[max_merkle_tree][2*max_len_hash];
-    unsigned half_merkle_done[max_merkle_tree]; // Flags indicating whether
-                  // each half of the Merkle tree has completed
+    unsigned half_merkle_done[max_merkle_tree]; //<! Flags indicating whether
+                  //<! each half of the Merkle tree has completed
 
-    void enqueue( task *t );  // Put the task on the honey-do list
-    task *next_task( void );  // Get the next task from the list
+    void enqueue( task *t );  //<! Put the task on the honey-do list
+    task *next_task( void );  //<! Get the next task from the list
 };
 
+///
+/// This is the object that performs a specific task.
+/// Note that, sometimes, we'll reuse this object for another task
+/// (if we perform another task immediately after finishing the
+/// previous one)
 class task {
-        // What task we have been assigned
+        /// What task we have been assigned
     void (task::*func)(work_center *);
-        // Which FORS/Merkle tree we are working on
+        /// Which FORS/Merkle tree we are working on
+	/// Note: if we're signing a Merkle half-tree, we encode which half
+	/// in the lsbit, and shift the actual level up one
     unsigned level;
     friend class work_center;
 public:
     class task *next;
-        // Record which task to run in this structure
+        /// Record which task to run in this structure
+	/// Used both when the task is first initialized, and when this
+	/// task is done, and it needs to spawn off another task
     void set_task(void (task::*func_p)(work_center *), unsigned lev ) {
        func = func_p;
        level = lev;
     }
-        // Perform the assigned task
+        /// Perform the assigned task
     void do_it(work_center *w) { (this->*func)(w); }
 
         // The various tasks we might be assigned
+        /// Build a FORS tree and authentication path
     void build_fors_tree(work_center *w);
+        /// Hash all the FORS roots together
     void hash_fors(work_center *w);
+        /// Generate a WOTS signature
     void build_wots_sig(work_center *w);
+        /// Build a Merkle tree and authentication path
     void build_merkle_tree(work_center *w);
+        /// Build half a Merkle tree and authentication path (and combine
+	/// it with the other half if the othe half completes first)
     void build_half_merkle_tree(work_center *w);
 };
 
@@ -196,11 +230,15 @@ void worker::do_job(void) {
         center->unlock();
 
         t->do_it(center);
+
+    	  // Note: we don't have to worry about memory leaks; all
+	      // the task structures come from the same automatic array
+	      // and so will all be freed when we're done
     }
 }
 
-// This is what a child thread runs - it just does the jobs it
-// can grab off the list
+/// This is what a child thread runs - it just does the jobs it
+/// can grab off the list
 void *worker_thread( void *arg ) {
     worker* w = static_cast<worker*>(arg);
     w->do_job();
@@ -224,11 +262,11 @@ void work_center::enqueue(task *t) {
     unlock();
 }
 
-//
-// This shifts right by 'shift' bits, doing the right thing
-// on a shift of 64
-// Needed because some parameter sets really do try to shift
-// the tree index by 64 at the top Merkle tree
+///
+/// This shifts right by 'shift' bits, doing the right thing
+/// on a shift of 64
+/// Needed because some parameter sets really do try to shift
+/// the tree index by 64 at the top Merkle tree
 static inline uint64_t shr(uint64_t a, unsigned shift ) {
     if (shift >= 64)
         return 0;
@@ -236,10 +274,12 @@ static inline uint64_t shr(uint64_t a, unsigned shift ) {
         return a >> shift;
 }
 
+//
+// The function that generates a signature
 success_flag key::sign(
             unsigned char* signature, size_t len_signature_buffer,
             const unsigned char* message, size_t len_message,
-            random_function rand) {
+            const random& rand) {
     // Make sure this key has the private key loaded
     if (!have_private_key) return false;
 
@@ -266,14 +306,15 @@ success_flag key::sign(
 
     // Step 2 - generate the randomness
     unsigned char opt[ max_len_hash ];
-    if (rand) {
-        // Q: what should we do on randomness failure???
-        (void)rand( opt, n );
-    } else {
-        memset( opt, 0, n );
+    switch (rand( opt, n )) {
+    case random_success:
+        break;
+    case random_failure: default:
+        // Randomness failure detected; if we want to do something other
+	// than default, we'd do it here
+    case random_default:
+        memset( opt, 0, n );  // No optrand provided; use the default
     }
-    // TODO: Give the caller the option of not doing two passes over the
-    // message
     prf_msg( &signature[ geo.randomness_offset ],
              opt, message, len_message );
 

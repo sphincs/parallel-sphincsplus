@@ -5,7 +5,6 @@
  */ 
 #include <string.h>
 #include "api.h"
-#include "xn_internal.h"
 #include "internal.h"
 #include "sha256.h"
 #include "sha256avx.h"
