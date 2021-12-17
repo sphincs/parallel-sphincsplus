@@ -59,7 +59,13 @@ class work_center {
     task* head_q[2];        //<! For these pointers, the thread must be
     task* tail_q[2];        //<! locked before reading/writing these (if
                             //<! we're threading)
-    unsigned mask;
+    unsigned mask;          //<! 1 -> place tasks in different queues based
+	                    //<!      on if this is an even level or odd
+	                    //<! 0 -> place all tasks in the same queue
+	                    //<! This is here so that, if we're in fault
+	                    //<! detection mode, we tend to use different
+	                    //<! threads to do the double-checking
+	
     uint64_t fors_done[2];  //<! Bitmask of which fors trees we have completed
     uint64_t fors_target;   //<! What the bitmask will look like when we've
                             //<! done them all
