@@ -433,8 +433,8 @@ public:
     /// standard Sphincs+ format.  Since we're not importing with the
     /// private key, we won't be able to sign
     /// @param[in] public_key Pointer to the public key
- 
     virtual void set_public_key(const unsigned char *public_key);
+    
     /// Import a private key; the private key is assumed to be in the
     /// standard Sphincs+ format.
     /// @param[in] private_key Pointer to the private key
@@ -449,8 +449,8 @@ public:
     /// Get a copy of the private key.  It might seem like we shouldn't
     /// have an API to do this; however the application might need to write
     /// the private key to long term storage, so we kinda have to.
-    /// Again, taking this pointer, casting it to nonconst and then writing
-    /// through it is a Bad Idea
+    /// Again, casting this pointer to nonconst and then writing through
+    /// it is a Bad Idea
     /// \return The private key, or NULL if we don't have a public key
     const unsigned char *get_private_key(void);
 
