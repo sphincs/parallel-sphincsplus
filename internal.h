@@ -65,7 +65,7 @@ struct digit {
         int pointer; //<! Link to the next digit on the list
     };               //<! Yes, I'm aware they're the same type
                      //<! but they mean different things
-    int index;       // <!Starting index for this digit
+    int index;       //<! Starting index for this digit
 };
 
 // Internal routines to convert between byte strings and integers
