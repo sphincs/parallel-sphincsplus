@@ -547,6 +547,17 @@ protected:
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg );
 
+    // These are implementations of the prf_msg/h_msg functions
+    // that use SHA512 internally.  It is used by the SHA256-L5
+    // parameter sets, in this class so that child L5 classes
+    // can redirect the virtual functions to these
+    void prf_msg_512( unsigned char *result,
+              const unsigned char *opt,
+              const unsigned char *msg, size_t len_msg );
+    void h_msg_512( unsigned char *result, size_t len_result,
+              const unsigned char *r,
+              const unsigned char *msg, size_t len_msg );
+
     /// The prehashed public seed
     uint32_t state_seeded[8];
 
@@ -563,7 +574,6 @@ public:
 class shake256_hash : public key {
 protected:
     SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The prehashed public seed
-    SHAKE256_PRECOMPUTE pre_priv_seed; //!< The prehashed private seed
 
     virtual unsigned num_track(void);
     virtual unsigned num_log_track(void);
@@ -579,14 +589,12 @@ protected:
 public:
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
-    virtual ~shake256_hash();
 };
 
 /// This abstract class is for Haraka-based parameter sets
 class haraka_hash : public key {
 protected:
     __m128i pub_seed_expanded[40]; //<! Expanded Haraka public key
-    __m128i priv_seed_expanded[40]; //<! Expanded Haraka private key
 
     virtual unsigned num_track(void);
     virtual unsigned num_log_track(void);
@@ -604,7 +612,6 @@ protected:
 public:
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
-    virtual ~haraka_hash(); // To zeroize priv_seed_expanded
 };
 
 /// This abstract class is for SHA256-simple-based parameter sets
@@ -618,6 +625,7 @@ protected:
              unsigned int inblocks, addr_t* addrxn);
 };
 
+
 /// This abstract class is for SHA256-robust-based parameter sets
 class key_sha256_robust : public sha256_hash {
 protected:
@@ -627,6 +635,23 @@ protected:
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
+};
+// And the L5 versions of the SHA256 parameter sets
+class key_sha256_L5_simple : public key_sha256_simple {
+    virtual void prf_msg( unsigned char *result,
+              const unsigned char *opt,
+              const unsigned char *msg, size_t len_msg );
+    virtual void h_msg( unsigned char *result, size_t len_result,
+              const unsigned char *r,
+              const unsigned char *msg, size_t len_msg );
+};
+class key_sha256_L5_robust : public key_sha256_robust {
+    virtual void prf_msg( unsigned char *result,
+              const unsigned char *opt,
+              const unsigned char *msg, size_t len_msg );
+    virtual void h_msg( unsigned char *result, size_t len_result,
+              const unsigned char *r,
+              const unsigned char *msg, size_t len_msg );
 };
 
 /// This abstract class is for SHAKE256-simple-based parameter sets
@@ -729,25 +754,25 @@ public:
 };
 
 /// The class for keys with the SHA256 simple 256F parameter set
-class key_sha256_256f_simple : public key_sha256_simple {
+class key_sha256_256f_simple : public key_sha256_L5_simple {
 public:
     key_sha256_256f_simple(void) { set_256f(); }
 };
 
 /// The class for keys with the SHA256 robust 256F parameter set
-class key_sha256_256f_robust : public key_sha256_robust {
+class key_sha256_256f_robust : public key_sha256_L5_robust {
 public:
     key_sha256_256f_robust(void) { set_256f(); }
 };
 
 /// The class for keys with the SHA256 simple 256S parameter set
-class key_sha256_256s_simple : public key_sha256_simple {
+class key_sha256_256s_simple : public key_sha256_L5_simple {
 public:
     key_sha256_256s_simple(void) { set_256s(); }
 };
 
 /// The class for keys with the SHA256 robust 256S parameter set
-class key_sha256_256s_robust : public key_sha256_robust {
+class key_sha256_256s_robust : public key_sha256_L5_robust {
 public:
     key_sha256_256s_robust(void) { set_256s(); }
 };

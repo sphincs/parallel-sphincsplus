@@ -262,7 +262,8 @@ success_flag key::sign(
         // Randomness failure detected; if we want to do something other
 	// than default, we'd do it here
     case random_default:
-        memset( opt, 0, n );  // No optrand provided; use the default
+        memcpy( opt, get_public_seed(), n );  // No optrand provided;
+                                              // use the default
     }
     prf_msg( &signature[ geo.randomness_offset ],
              opt, message, len_message );
