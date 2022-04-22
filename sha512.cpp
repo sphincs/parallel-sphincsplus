@@ -211,36 +211,4 @@ void SHA512_CTX::final(unsigned char *digest) {
     }
 }
 
-mgf1_sha512::mgf1_sha512( const unsigned char *seed, unsigned seed_len ) {
-    memcpy( state, seed, seed_len );
-    state_len = seed_len;
-    next_index = 0;
-    output_index = sha512_output_size;
-}
-
-void mgf1_sha512::output( unsigned char *buffer, unsigned len_output ) {
-    for (;;) {
-        unsigned left_in_buffer = sha512_output_size - output_index;
-	if (left_in_buffer > len_output) {
-	    left_in_buffer = len_output;
-	}
-	if (left_in_buffer > 0) {
-	    memcpy( buffer, &output_buffer[output_index], left_in_buffer );
-	    output_index += left_in_buffer;
-	    buffer += left_in_buffer;
-	    len_output -= left_in_buffer;
-	}
-	if (len_output == 0) break;
-
-	// We need to generate some fresh output
-        put_bigendian( 	&state[state_len], next_index, 4 );
-	next_index += 1;
-        SHA512_CTX ctx;
-	ctx.init();
-	ctx.update(state, state_len+4);
-	ctx.final(output_buffer);
-	output_index = 0;
-    }
-}
-
 } /* namespace sphincs_plus */

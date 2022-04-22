@@ -32,12 +32,10 @@ const int sha256_output_size = 32; //<! The size of an untruncated SHA256 output
 const int sha256_block_size = 64; //<! SHA256 processes things in 64 byte chunks
 const unsigned sha512_output_size = 64; //<! SHA-512 generates 64 bytes
                                     //<! (or 512 bits) of output
-const int max_mgf1_input = 2*max_len_hash + sha512_output_size; //<! The
+const int max_mgf1_input = max_len_hash + sha256_addr_bytes; //<! The
                             //<! maximum seed size for an MGF1 input; this
                             //<! maximum occurs during a message hash for L5
-                            //<! parameter sets.
-                            //<! MGF1 is also used during SHA256-robust
-                            //<! operations, those use a shorter input
+                            //<! SHA256-robust parameter sets.
 const unsigned max_track = 8; //<! The maximum number of hashes we can do in
                             //<! parallel (on a single thread) is 8
 

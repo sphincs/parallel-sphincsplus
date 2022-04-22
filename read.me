@@ -204,8 +204,8 @@ Design decisions:
     with "sphincs"; otherwise, I would never have a class with as generic
     a name as "key"), and classes (which we use to select the parameter set,
     as well as give us convienent place to place expanded keys and whatnot.
-    We don't use any of the more advanced features, such as templates or
-    RTTI; we do use pointers to member functions at times.
+    We don't use any of the more advanced features, such as RTTI; we do use
+    templates and pointers to member functions at times.
     - I do provide a memory-safe version of the sign function (using an
       STL-defined unique_ptr object); this version will also throw an
       exception on an error.  It's up to the application if it wants to use
