@@ -55,6 +55,8 @@ public:
     /// Erase the hash state.  Used if we've hashed sensitive data and
     /// we need to free the hash object
     void zeroize(void) { sphincs_plus::zeroize( this, sizeof *this ); }
+
+    static const unsigned hash_size = sha256_output_size;
 };
 
 } /* namespace sphincs_plus */
