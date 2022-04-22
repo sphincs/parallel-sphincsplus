@@ -4,15 +4,13 @@
 namespace sphincs_plus {
 
 /// This is the object that implements the MGF1 arbitrary-sized output function
-/// It is parameterized by the hash function used (and the length of that hash
-/// function; we need it because we hold a hash output, and we need to size the
-/// buffer)
-template <class hash_ctx, unsigned hash_len> class mgf1 {
+/// It is parameterized by the hash function used
+template <class hash_ctx> class mgf1 {
     const unsigned char *message; //<! The string we're generating output from
     unsigned int message_len;  //<! The length of the string
     unsigned char state[4];   //<! The index of the output
     unsigned char output_index; //<! Where in the output_buffer we are
-    unsigned char output_buffer[ hash_len ]; //<! The most recent hash
+    unsigned char output_buffer[ hash_ctx::hash_size ]; //<! The most recent hash
 public:
     /// Create an mgf1 object seeded with the specific key
     /// @param[in] seed The seed value
@@ -20,7 +18,8 @@ public:
     mgf1(const unsigned char *seed, unsigned seed_len) {
 	message = seed;
 	message_len = seed_len;
-        output_index = hash_len;
+        output_index = hash_ctx::hash_size; // This value means 'the buffer is
+                                            // empty; we'll need to refill it
         state[0] = state[1] = state[2] = state[3] = 0;
     }
 
@@ -31,7 +30,7 @@ public:
     void output( unsigned char *buffer, unsigned len_output ) {
         for (;;) {
 	    // See if we have some bytes left in the buffer
-            unsigned left_in_buffer = hash_len - output_index;
+            unsigned left_in_buffer = hash_ctx::hash_size - output_index;
             if (left_in_buffer > len_output) {
                 left_in_buffer = len_output;
             }
