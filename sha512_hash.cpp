@@ -96,8 +96,7 @@ void sha256_hash::h_msg_512( unsigned char *result, size_t len_result,
     // Now do the outer MGF1
     memcpy( msg_hash,   r,       n );
     memcpy( msg_hash+n, pk_seed, n );
-    mgf1<SHA512_CTX, sha512_output_size> stream( msg_hash,
-                                                 2*n + sha512_output_size );
+    mgf1<SHA512_CTX> stream( msg_hash, 2*n + sha512_output_size );
     stream.output( result, len_result );
 }
 
