@@ -31,7 +31,7 @@ typedef success_flag (*random_function)( void *target, size_t num_bytes );
 ///
 /// Flag that indicates whether the random class object succeeded or failed
 /// It has a third option (random_default), that indicates to the caller that
-/// on random function was provided by the application
+/// no random function was provided by the application
 enum random_return {
     random_failure,    //<! Random generator failed
     random_success,    //<! Random generator succeeded
