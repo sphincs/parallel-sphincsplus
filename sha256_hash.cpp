@@ -8,6 +8,7 @@
 #include "internal.h"
 #include "sha256.h"
 #include "sha256avx.h"
+#include "mgf1.h"
 
 namespace sphincs_plus {
 
@@ -47,39 +48,44 @@ void sha256_hash::set_private_key(const unsigned char *private_key) {
 void sha256_hash::prf_addr_xn(unsigned char **out,
                 const addr_t* addrx8)
 {
-    unsigned char bufx8[8 * (max_len_hash + sha256_addr_bytes)];
     __m256i outbufx8[8][sha256_output_size / sizeof(__m256i)];
-    unsigned int j;
-    unsigned n = len_hash();
-    const unsigned char* key = get_secret_seed();
-
-    for (j = 0; j < 8; j++) {
-        memcpy(bufx8 + j*(n + sha256_addr_bytes), key, n);
-        memcpy(bufx8 + n + j*(n + sha256_addr_bytes),
-                         addrx8 + j, sha256_addr_bytes);
-    }
-
     sha256ctx8x ctx;
-    sha256_init8x(&ctx);
+
+    sha256_init_frombytes_x8(&ctx, state_seeded, 512);
+
+    int n = len_hash();
     sha256_update8x(&ctx,
-             bufx8 + 0*(n + sha256_addr_bytes),
-             bufx8 + 1*(n + sha256_addr_bytes),
-             bufx8 + 2*(n + sha256_addr_bytes),
-             bufx8 + 3*(n + sha256_addr_bytes),
-             bufx8 + 4*(n + sha256_addr_bytes),
-             bufx8 + 5*(n + sha256_addr_bytes),
-             bufx8 + 6*(n + sha256_addr_bytes),
-             bufx8 + 7*(n + sha256_addr_bytes),
-             n + sha256_addr_bytes);
+                    &addrx8[0],
+                    &addrx8[1],
+                    &addrx8[2],
+                    &addrx8[3],
+                    &addrx8[4],
+                    &addrx8[5],
+                    &addrx8[6],
+                    &addrx8[7],
+                    sha256_addr_bytes );
+
+    const unsigned char* key = get_secret_seed();
+    sha256_update8x(&ctx,
+		    key,
+		    key,
+		    key,
+		    key,
+		    key,
+		    key,
+		    key,
+		    key,
+                    n );
+
     sha256_final8x(&ctx,
-             outbufx8[0],
-             outbufx8[1],
-             outbufx8[2],
-             outbufx8[3],
-             outbufx8[4],
-             outbufx8[5],
-             outbufx8[6],
-             outbufx8[7]);
+                   outbufx8[0],
+                   outbufx8[1],
+                   outbufx8[2],
+                   outbufx8[3],
+                   outbufx8[4],
+                   outbufx8[5],
+                   outbufx8[6],
+                   outbufx8[7]);
 
     memcpy(out[0], outbufx8[0], n);
     memcpy(out[1], outbufx8[1], n);
@@ -134,7 +140,7 @@ void sha256_hash::prf_msg( unsigned char *result,
 void sha256_hash::h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg ) {
-    unsigned char msg_hash[ sha256_output_size ];
+    unsigned char msg_hash[ sha256_output_size  + 2*max_len_hash ];
     size_t n = len_hash();
 
     const unsigned char *pk_seed = get_public_seed();
@@ -146,10 +152,12 @@ void sha256_hash::h_msg( unsigned char *result, size_t len_result,
     ctx.update(pk_seed, n);
     ctx.update(pk_root, n);
     ctx.update(msg, len_msg);
-    ctx.final(msg_hash);
+    ctx.final(msg_hash + 2*n);
 
     // Now do the outer MGF1
-    mgf1 stream( msg_hash, sha256_output_size );
+    memcpy( msg_hash,   r,       n );
+    memcpy( msg_hash+n, pk_seed, n );
+    mgf1<SHA256_CTX> stream( msg_hash, 2*n + sha256_output_size );
     stream.output( result, len_result );
 }
 

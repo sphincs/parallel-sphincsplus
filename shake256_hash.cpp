@@ -21,13 +21,20 @@ void shake256_hash::prf_addr_xn(unsigned char **out,
     SHAKE256_4X_CTX ctx;
     unsigned n = len_hash();
 
-    shake256_4x_inc_init_from_precompute(&ctx, &pre_priv_seed);
+    shake256_4x_inc_init_from_precompute(&ctx, &pre_pub_seed );
     shake256_4x_inc_absorb(&ctx,
                            addrx4[0],
                            addrx4[1],
                            addrx4[2],
                            addrx4[3],
                            addr_bytes);
+    const unsigned char *secret_seed = get_secret_seed();
+    shake256_4x_inc_absorb(&ctx,
+		           secret_seed,
+		           secret_seed,
+		           secret_seed,
+		           secret_seed,
+                           n);
     shake256_4x_inc_finalize(&ctx);
     shake256_4x_inc_squeeze(out[0], out[1], out[2], out[3],
                             n, &ctx);
@@ -84,7 +91,6 @@ void shake256_hash::set_public_key(const unsigned char *public_key) {
 void shake256_hash::set_private_key(const unsigned char *private_key) {
     key::set_private_key(private_key);
     shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
-    shake256_precompute( &pre_priv_seed, get_secret_seed(), len_hash() );
 }
 
 unsigned shake256_hash::num_track(void) {
@@ -92,10 +98,6 @@ unsigned shake256_hash::num_track(void) {
 }
 unsigned shake256_hash::num_log_track(void) {
     return 2;
-}
-
-shake256_hash::~shake256_hash() {
-    zeroize( &pre_priv_seed, sizeof pre_priv_seed );
 }
 
 } /* namespace sphincs_plus */

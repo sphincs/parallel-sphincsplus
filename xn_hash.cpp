@@ -182,7 +182,7 @@ void key::wots_sign( unsigned char *sig, unsigned merkle_level,
     // Create the base values
     memset( leaf_addr, 0, num_track*addr_bytes );
     for (unsigned j=0; j<num_track; j++) {
-        set_type(leaf_addr[j], ADDR_TYPE_WOTS);
+        set_type(leaf_addr[j], ADDR_TYPE_WOTS_PRF);
         set_layer_addr(leaf_addr[j], merkle_level);
         set_tree_addr(leaf_addr[j], tree_idx);
         set_keypair_addr(leaf_addr[j], leaf_idx);
@@ -200,6 +200,11 @@ void key::wots_sign( unsigned char *sig, unsigned merkle_level,
             }
         }
         prf_addr_xn(pointer, leaf_addr);
+    }
+
+    // Switch the types to what the WOTS+ computation expects
+    for (unsigned j=0; j<num_track; j++) {
+        set_type(leaf_addr[j], ADDR_TYPE_WOTS);
     }
 
     // Convert the message into a series of digits
@@ -385,8 +390,12 @@ void gen_wots_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
         for (j = 0; j < num_track; j++) {
             k.set_chain_addr(leaf_addr[j], i);
             k.set_hash_addr(leaf_addr[j], 0);
+            k.set_type(leaf_addr[j], ADDR_TYPE_WOTS_PRF);
         }
         k.prf_addr_xn(chain_buffer, leaf_addr);
+        for (j = 0; j < num_track; j++) {
+            k.set_type(leaf_addr[j], ADDR_TYPE_WOTS);
+	}
 
         /* Iterate down the WOTS chain */
         for (unsigned z=0; z < wots_w-1; z++) {
@@ -417,6 +426,7 @@ void gen_fors_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
 
     /* Only set the parts that the caller doesn't set */
     for (unsigned j = 0; j < num_track; j++) {
+        k.set_type(leaf_addrx[j], ADDR_TYPE_FORS_PRF);
         k.set_tree_index(leaf_addrx[j], leaf_idx + j);
     }
 
@@ -437,7 +447,10 @@ void gen_fors_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
     // Convert the num_track private values into the corresponding public
     // values (the ones at the bottom of the FORS tree)
     unsigned char *leaves[max_track];
-    for (unsigned j = 0; j < num_track; j++) leaves[j] = dest + j*n;
+    for (unsigned j = 0; j < num_track; j++) {
+        k.set_type(leaf_addrx[j], ADDR_TYPE_FORSTREE);
+        leaves[j] = dest + j*n;
+    }
     k.f_xn(leaves, leaves, leaf_addrx);
 }
 
