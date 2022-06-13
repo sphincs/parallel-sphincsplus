@@ -191,37 +191,5 @@ void SHA256_CTX::export_intermediate(sha256_state intermediate) {
     memcpy( intermediate, h, 8 * sizeof(uint32_t) );
 }
 
-mgf1::mgf1( const unsigned char *seed, unsigned seed_len ) {
-    memcpy( state, seed, seed_len );
-    state_len = seed_len;
-    next_index = 0;
-    output_index = sha256_output_size;
-}
-
-void mgf1::output( unsigned char *buffer, unsigned len_output ) {
-    for (;;) {
-        unsigned left_in_buffer = sha256_output_size - output_index;
-	if (left_in_buffer > len_output) {
-	    left_in_buffer = len_output;
-	}
-	if (left_in_buffer > 0) {
-	    memcpy( buffer, &output_buffer[output_index], left_in_buffer );
-	    output_index += left_in_buffer;
-	    buffer += left_in_buffer;
-	    len_output -= left_in_buffer;
-	}
-	if (len_output == 0) break;
-
-	// We need to generate some fresh output
-	ull_to_bytes( &state[ state_len ], 4, next_index );
-	next_index += 1;
-        SHA256_CTX ctx;
-	ctx.init();
-	ctx.update(state, state_len+4);
-	ctx.final(output_buffer);
-	output_index = 0;
-    }
-}
-
 }  /* namespace sphincs_plus */
 

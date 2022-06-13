@@ -72,12 +72,6 @@ void haraka_hash::set_public_key(const unsigned char *public_key) {
 void haraka_hash::set_private_key(const unsigned char *private_key) {
     key::set_private_key(private_key);
     expand_seed( pub_seed_expanded, get_public_seed(), len_hash() );
-    expand_seed( priv_seed_expanded, get_secret_seed(), len_hash() );
-}
-
-haraka_hash::~haraka_hash(void) {
-        // There's private seed here
-    zeroize( priv_seed_expanded, sizeof priv_seed_expanded );
 }
 
 /*
@@ -87,21 +81,29 @@ haraka_hash::~haraka_hash(void) {
 void haraka_hash::prf_addr_xn(unsigned char **out,
                 const addr_t* addrx4)
 {
-    haraka256_4x prf( priv_seed_expanded );
-
-    u128 input_buffer[4][2];
-    memcpy(input_buffer, addrx4, 4*32);
-
-    u128 buffer[4][2];
-    prf.transform( buffer[0], buffer[1], buffer[2], buffer[3],
-                   input_buffer[0], input_buffer[1],
-                   input_buffer[2], input_buffer[3] );
-
     unsigned n = len_hash();
-    memcpy( out[0], buffer[0], n );
-    memcpy( out[1], buffer[1], n );
-    memcpy( out[2], buffer[2], n );
-    memcpy( out[3], buffer[3], n );
+    union {
+        unsigned char input_buffer[4][ addr_bytes + max_len_hash ];
+	u128 input_u128[4][4];
+    };
+    const unsigned char* secret_seed = get_secret_seed();
+    for (int i=0; i<4; i++) {
+        memcpy( &input_buffer[i][0], addrx4+i, addr_bytes );
+        memcpy( &input_buffer[i][32], secret_seed, n );
+        memset( &input_buffer[i][32+n], 0, 32-n );
+    }
+
+    u128 output_buffer[4][2];
+
+    haraka512_4x prf( pub_seed_expanded );
+    prf.transform( output_buffer[0], output_buffer[1],
+	           output_buffer[2], output_buffer[3],
+	           input_u128[0], input_u128[1],
+	           input_u128[2], input_u128[3] );
+   
+    for (int i=0; i<4; i++) {
+        memcpy(out[i], output_buffer[i], n);
+    }
 }
 
 // prf_msg is defined as HarakaS_pk.seed( prf || optrand || msg )

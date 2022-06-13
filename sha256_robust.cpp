@@ -6,6 +6,7 @@
 #include "internal.h"
 #include "sha256avx.h"
 #include "sha256.h"
+#include "mgf1.h"
 #include "mgf1_8x.h"
 
 namespace sphincs_plus {
@@ -27,7 +28,7 @@ void key_sha256_robust::thash( unsigned char* out,
     unsigned char mgf1_seed[ max_len_hash + sha256_addr_bytes ];
     memcpy( mgf1_seed, get_public_seed(), n );
     memcpy( &mgf1_seed[n], addr, sha256_addr_bytes );
-    mgf1 bitstream( mgf1_seed, n + sha256_addr_bytes );
+    mgf1<SHA256_CTX> bitstream( mgf1_seed, n + sha256_addr_bytes );
 
     // Starting at state_seeded, hash the addr structure and the
     // input blocks xored with the mgf1 stream

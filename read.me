@@ -65,7 +65,7 @@ Here is how this package is used:
           
           Notes:
           - This allocates and returns the signature as a unique_ptr; sig.get()
-            will retrieve the pointer to the unsigned char */  This buffer will
+            will retrieve the pointer to the unsigned char.  This buffer will
             be freed when sig goes out of scope.
           - This call throws an exception on error (e.g. if the signer doesn't
             have a key)
@@ -104,7 +104,7 @@ Here is how this package is used:
       of two.
 
     - All key classes (such as key_sha256_128s_simple) are subclasses of
-      a master sphincs_plus::key class, logic such as:
+      a master sphincs_plus::key class, this logic works as expected:
           sphincs_key::key* k;
           if (i_am_in_a_haraka_mood)
              k = new sphincs_plus::key_haraka_128s_simple;
@@ -113,12 +113,11 @@ Here is how this package is used:
           else
              k = new sphincs_plus::key_shake256_128s_simple;
           k->generate_key_pair();
-       works as expected.
 
 
 Some comments:
 
-- This package is not meant  to replace the Sphincs+ reference code,
+- This package is not meant to replace the Sphincs+ reference code,
   but to supplement it.  This means that this package doesn't have to
   meet all the requirements that the reference code does (e.g. it
   doesn't have to run everywhere).
@@ -165,7 +164,7 @@ Some comments:
     matter of taste; I don't like making direct calls to a specific rng (the
     caller might have a device-dependent better one), and the third obvious
     option (having the caller pass in a random pool) is a foot cannon.  On
-    the other option, it may be that the appllication doesn't want to bother,
+    the other option, it may be that the application doesn't want to bother,
     so I included a default based on rdrand.
   - Once again, a matter of taste, but I find the naming convention that NIST
     used unintutitive; to me, crypto_sign_open doesn't denote 'verify'.
@@ -210,8 +209,8 @@ Design decisions:
     with "sphincs"; otherwise, I would never have a class with as generic
     a name as "key"), and classes (which we use to select the parameter set,
     as well as give us convienent place to place expanded keys and whatnot.
-    We don't use any of the more advanced features, such as templates or
-    RTTI; we do use pointers to member functions at times.
+    We don't use any of the more advanced features, such as RTTI; we do use
+    templates and pointers to member functions at times.
     - I do provide a memory-safe version of the sign function (using an
       STL-defined unique_ptr object); this version will also throw an
       exception on an error.  It's up to the application if it wants to use
@@ -224,9 +223,9 @@ Design decisions:
     VLAs (even for C POD types).  I suppose that their prefered solution is
     to use new with some smart pointer; I'm not that thrilled with that idea
     (especially from a child thread, yes, their memory allocation logic is
-    probably thread-safe; I'd prefer not have to take that on faith);
-    I've tried to worse case the array sizes (if feasible) or reorganize the
-    logic to use smaller fixed sized array (if not).
+    probably thread-safe; I'd prefer to not take that on faith); I've tried
+    to worse case the array sizes (if feasible) or reorganize the logic to
+    use smaller fixed sized array (if not).
   - As for source file layout, I organized things in ways that appeared
     logical to me, but also so that sources that were expected to be used
     by only some of the applications were in their own files (so that a static

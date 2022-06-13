@@ -9,6 +9,8 @@ SOURCES =         sphincs-fast.cpp sign.cpp xn_hash.cpp \
 		  verify.cpp stl.cpp \
                   sha256_hash.cpp sha256_simple.cpp sha256_robust.cpp \
 		  sha256.cpp mgf1_8x.cpp sha256avx.cpp \
+		  sha512_hash.cpp sha512.cpp mgf1_512_4x.cpp sha512avx.cpp \
+		  sha512_simple.cpp sha512_robust.cpp \
                   shake256_hash.cpp shake256_simple.cpp shake256_robust.cpp \
 		  fips202.cpp fips202x4.cpp \
                   keccak4x/KeccakP-1600-times4-SIMD256.o \
@@ -20,7 +22,8 @@ OBJECTS =         $(subst .cpp,.o,$(SOURCES))
 HEADERS =         api.h internal.h mgf1_8x.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
-		  test_verify.cpp test_thread.cpp test_testvector.cpp test_fault.cpp
+		  test_verify.cpp test_thread.cpp test_testvector.cpp test_fault.cpp \
+		  test_sha512.cpp
 
 TESTS = test PQCgenKAT_sign test_sphincs
 

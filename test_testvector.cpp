@@ -64,75 +64,75 @@ public:
 
 // Given a parameter set name, return a key of that type
 static sphincs_plus::key* lookup_key( const char *name) {
-    if (0 == strcmp( name, "sha256_128f_simple" ))
+    if (0 == strcmp( name, "sha2_128f_simple" ))
         return new sphincs_plus::key_sha256_128f_simple;
-    if (0 == strcmp( name, "sha256_128f_robust" ))
+    if (0 == strcmp( name, "sha2_128f_robust" ))
         return new sphincs_plus::key_sha256_128f_robust;
-    if (0 == strcmp( name, "shake256_128f_simple" ))
+    if (0 == strcmp( name, "shake_128f_simple" ))
         return new sphincs_plus::key_shake256_128f_simple;
-    if (0 == strcmp( name, "shake256_128f_robust" ))
+    if (0 == strcmp( name, "shake_128f_robust" ))
         return new sphincs_plus::key_shake256_128f_robust;
     if (0 == strcmp( name, "haraka_128f_simple" ))
         return new sphincs_plus::key_haraka_128f_simple;
     if (0 == strcmp( name, "haraka_128f_robust" ))
         return new sphincs_plus::key_haraka_128f_robust;
-    if (0 == strcmp( name, "sha256_128s_simple" ))
+    if (0 == strcmp( name, "sha2_128s_simple" ))
         return new sphincs_plus::key_sha256_128s_simple;
-    if (0 == strcmp( name, "sha256_128s_robust" ))
+    if (0 == strcmp( name, "sha2_128s_robust" ))
         return new sphincs_plus::key_sha256_128s_robust;
-    if (0 == strcmp( name, "shake256_128s_simple" ))
+    if (0 == strcmp( name, "shake_128s_simple" ))
         return new sphincs_plus::key_shake256_128s_simple;
-    if (0 == strcmp( name, "shake256_128s_robust" ))
+    if (0 == strcmp( name, "shake_128s_robust" ))
         return new sphincs_plus::key_shake256_128s_robust;
     if (0 == strcmp( name, "haraka_128s_simple" ))
         return new sphincs_plus::key_haraka_128s_simple;
     if (0 == strcmp( name, "haraka_128s_robust" ))
         return new sphincs_plus::key_haraka_128s_robust;
 
-    if (0 == strcmp( name, "sha256_192f_simple" ))
+    if (0 == strcmp( name, "sha2_192f_simple" ))
         return new sphincs_plus::key_sha256_192f_simple;
-    if (0 == strcmp( name, "sha256_192f_robust" ))
+    if (0 == strcmp( name, "sha2_192f_robust" ))
         return new sphincs_plus::key_sha256_192f_robust;
-    if (0 == strcmp( name, "shake256_192f_simple" ))
+    if (0 == strcmp( name, "shake_192f_simple" ))
         return new sphincs_plus::key_shake256_192f_simple;
-    if (0 == strcmp( name, "shake256_192f_robust" ))
+    if (0 == strcmp( name, "shake_192f_robust" ))
         return new sphincs_plus::key_shake256_192f_robust;
     if (0 == strcmp( name, "haraka_192f_simple" ))
         return new sphincs_plus::key_haraka_192f_simple;
     if (0 == strcmp( name, "haraka_192f_robust" ))
         return new sphincs_plus::key_haraka_192f_robust;
-    if (0 == strcmp( name, "sha256_192s_simple" ))
+    if (0 == strcmp( name, "sha2_192s_simple" ))
         return new sphincs_plus::key_sha256_192s_simple;
-    if (0 == strcmp( name, "sha256_192s_robust" ))
+    if (0 == strcmp( name, "sha2_192s_robust" ))
         return new sphincs_plus::key_sha256_192s_robust;
-    if (0 == strcmp( name, "shake256_192s_simple" ))
+    if (0 == strcmp( name, "shake_192s_simple" ))
         return new sphincs_plus::key_shake256_192s_simple;
-    if (0 == strcmp( name, "shake256_192s_robust" ))
+    if (0 == strcmp( name, "shake_192s_robust" ))
         return new sphincs_plus::key_shake256_192s_robust;
     if (0 == strcmp( name, "haraka_192s_simple" ))
         return new sphincs_plus::key_haraka_192s_simple;
     if (0 == strcmp( name, "haraka_192s_robust" ))
         return new sphincs_plus::key_haraka_192s_robust;
 
-    if (0 == strcmp( name, "sha256_256f_simple" ))
+    if (0 == strcmp( name, "sha2_256f_simple" ))
         return new sphincs_plus::key_sha256_256f_simple;
-    if (0 == strcmp( name, "sha256_256f_robust" ))
+    if (0 == strcmp( name, "sha2_256f_robust" ))
         return new sphincs_plus::key_sha256_256f_robust;
-    if (0 == strcmp( name, "shake256_256f_simple" ))
+    if (0 == strcmp( name, "shake_256f_simple" ))
         return new sphincs_plus::key_shake256_256f_simple;
-    if (0 == strcmp( name, "shake256_256f_robust" ))
+    if (0 == strcmp( name, "shake_256f_robust" ))
         return new sphincs_plus::key_shake256_256f_robust;
     if (0 == strcmp( name, "haraka_256f_simple" ))
         return new sphincs_plus::key_haraka_256f_simple;
     if (0 == strcmp( name, "haraka_256f_robust" ))
         return new sphincs_plus::key_haraka_256f_robust;
-    if (0 == strcmp( name, "sha256_256s_simple" ))
+    if (0 == strcmp( name, "sha2_256s_simple" ))
         return new sphincs_plus::key_sha256_256s_simple;
-    if (0 == strcmp( name, "sha256_256s_robust" ))
+    if (0 == strcmp( name, "sha2_256s_robust" ))
         return new sphincs_plus::key_sha256_256s_robust;
-    if (0 == strcmp( name, "shake256_256s_simple" ))
+    if (0 == strcmp( name, "shake_256s_simple" ))
         return new sphincs_plus::key_shake256_256s_simple;
-    if (0 == strcmp( name, "shake256_256s_robust" ))
+    if (0 == strcmp( name, "shake_256s_robust" ))
         return new sphincs_plus::key_shake256_256s_robust;
     if (0 == strcmp( name, "haraka_256s_simple" ))
         return new sphincs_plus::key_haraka_256s_simple;
