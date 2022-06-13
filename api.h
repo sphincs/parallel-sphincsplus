@@ -81,8 +81,10 @@ enum hash_reason {
     ADDR_TYPE_WOTS = 0,    //!< We're hashing as a part of a WOTS+ chain
     ADDR_TYPE_WOTSPK = 1,  //!< We're hashing all the WOTS+ chain tops
     ADDR_TYPE_HASHTREE = 2,//!< We're hashing within a Merkle tree
-    ADDR_TYPE_FORSTREE = 3,//!< We're hashing wihtin a FORS tree
-    ADDR_TYPE_FORSPK = 4   //!< We're generating a private FORS value
+    ADDR_TYPE_FORSTREE = 3,//!< We're hashing within a FORS tree
+    ADDR_TYPE_FORSPK = 4,  //!< We're generating a private FORS value
+    ADDR_TYPE_WOTS_PRF = 5, //!< We're evaluating PRF for WOTS+
+    ADDR_TYPE_FORS_PRF = 6, //<! We're evaluation PRF for FORS
 };
 
 ///
@@ -269,6 +271,7 @@ protected:
     /// @param[in] addr An array of num_track address structures (no indirection
     ///               this time)
     virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addr);
+
     /// Performs the Sphincs+ T function on a single input
     /// @param[out] out Where to place the result of the T function
     /// @param[in] in The message input to the T function
@@ -277,6 +280,7 @@ protected:
     virtual void thash(unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) = 0;
+
     /// Performs the Sphincs+ T function on an array (size num_track) of
     /// inputs
     /// @param[out] out An array of pointers to locations to place the results
@@ -289,6 +293,7 @@ protected:
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn) = 0;
+
     /// Performs the Sphincs+ PRF function on an array (size num_track) of
     /// inputs
     /// @param[out] out An array of pointers to locations to place the results
@@ -530,14 +535,14 @@ public:
 ///
 /// This abstract class is for SHA256-based parameter sets
 class sha256_hash : public key {
-private:
+protected:
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
     /// This is called whenever we update the public key (which includes
     /// updates of the private key)
     /// @param[in] public_seed The new public seed
-    void initialize_public_seed(const unsigned char *public_seed);
-protected:
+    virtual void initialize_public_seed(const unsigned char *public_seed);
+
     virtual void prf_addr_xn(unsigned char **out,
               const addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
@@ -548,7 +553,7 @@ protected:
               const unsigned char *msg, size_t len_msg );
 
     // These are implementations of the prf_msg/h_msg functions
-    // that use SHA512 internally.  It is used by the SHA256-L5
+    // that use SHA512 internally.  It is used by the SHA256-L3, L5
     // parameter sets, in this class so that child L5 classes
     // can redirect the virtual functions to these
     void prf_msg_512( unsigned char *result,
@@ -636,8 +641,25 @@ protected:
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
 };
-// And the L5 versions of the SHA256 parameter sets
-class key_sha256_L5_simple : public key_sha256_simple {
+// And the L3, L5 versions of the SHA256 parameter sets
+class key_sha256_L35_simple : public key_sha256_simple {
+    /// The prehashed public seed for SHA-512
+    uint64_t state_seeded_512[8];
+
+    /// This precomputes the SHA-512 intermediate state of the public seed
+    //(so we don't have to recompute it everytime we need it).
+    /// This is called whenever we update the public key (which includes
+    /// updates of the private key)
+    /// @param[in] public_seed The new public seed
+    virtual void initialize_public_seed(const unsigned char *public_seed);
+
+    virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addr);
+    virtual void thash(unsigned char *out,
+             const unsigned char *in,
+             unsigned int inblocks, addr_t addr);
+    virtual void thash_xn(unsigned char **out,
+             unsigned char **in, 
+             unsigned int inblocks, addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
               const unsigned char *msg, size_t len_msg );
@@ -645,7 +667,24 @@ class key_sha256_L5_simple : public key_sha256_simple {
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg );
 };
-class key_sha256_L5_robust : public key_sha256_robust {
+class key_sha256_L35_robust : public key_sha256_robust {
+    /// The prehashed public seed for SHA-512
+    uint64_t state_seeded_512[8];
+
+    /// This precomputes the SHA-512 intermediate state of the public seed
+    /// (so we don't have to recompute it everytime we need it).
+    /// This is called whenever we update the public key (which includes
+    /// updates of the private key)
+    /// @param[in] public_seed The new public seed
+    virtual void initialize_public_seed(const unsigned char *public_seed);
+
+    virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addr);
+    virtual void thash(unsigned char *out,
+             const unsigned char *in,
+             unsigned int inblocks, addr_t addr);
+    virtual void thash_xn(unsigned char **out,
+             unsigned char **in, 
+             unsigned int inblocks, addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
               const unsigned char *msg, size_t len_msg );
@@ -730,49 +769,49 @@ public:
 };
 
 /// The class for keys with the SHA256 simple 192F parameter set
-class key_sha256_192f_simple : public key_sha256_simple {
+class key_sha256_192f_simple : public key_sha256_L35_simple {
 public:
     key_sha256_192f_simple(void) { set_192f(); }
 };
 
 /// The class for keys with the SHA256 robust 192F parameter set
-class key_sha256_192f_robust : public key_sha256_robust {
+class key_sha256_192f_robust : public key_sha256_L35_robust {
 public:
     key_sha256_192f_robust(void) { set_192f(); }
 };
 
 /// The class for keys with the SHA256 simple 192S parameter set
-class key_sha256_192s_simple : public key_sha256_simple {
+class key_sha256_192s_simple : public key_sha256_L35_simple {
 public:
     key_sha256_192s_simple(void) { set_192s(); }
 };
 
 /// The class for keys with the SHA256 robust 192S parameter set
-class key_sha256_192s_robust : public key_sha256_robust {
+class key_sha256_192s_robust : public key_sha256_L35_robust {
 public:
     key_sha256_192s_robust(void) { set_192s(); }
 };
 
 /// The class for keys with the SHA256 simple 256F parameter set
-class key_sha256_256f_simple : public key_sha256_L5_simple {
+class key_sha256_256f_simple : public key_sha256_L35_simple {
 public:
     key_sha256_256f_simple(void) { set_256f(); }
 };
 
 /// The class for keys with the SHA256 robust 256F parameter set
-class key_sha256_256f_robust : public key_sha256_L5_robust {
+class key_sha256_256f_robust : public key_sha256_L35_robust {
 public:
     key_sha256_256f_robust(void) { set_256f(); }
 };
 
 /// The class for keys with the SHA256 simple 256S parameter set
-class key_sha256_256s_simple : public key_sha256_L5_simple {
+class key_sha256_256s_simple : public key_sha256_L35_simple {
 public:
     key_sha256_256s_simple(void) { set_256s(); }
 };
 
 /// The class for keys with the SHA256 robust 256S parameter set
-class key_sha256_256s_robust : public key_sha256_L5_robust {
+class key_sha256_256s_robust : public key_sha256_L35_robust {
 public:
     key_sha256_256s_robust(void) { set_256s(); }
 };

@@ -167,6 +167,13 @@ void SHA512_CTX::init(void) {
     num = 0;
 }
 
+void SHA512_CTX::init_from_intermediate(const sha512_state init,
+                                        unsigned int start_count) {
+    memcpy( h, init, 8 * sizeof(uint64_t) );
+    count = 8 * start_count;   // SHA512_CTX keeps a bit count
+    num = 0;        // Intermediates always start at a block boundary
+}
+
 void SHA512_CTX::update(const void *src, size_t input_count) {
     count += (input_count << 3);
 
@@ -209,6 +216,10 @@ void SHA512_CTX::final(unsigned char *digest) {
     for (unsigned i=0; 8*i<sha512_output_size; i++) {
         put_bigendian( digest + 8*i, h[i], 8 );
     }
+}
+
+void SHA512_CTX::export_intermediate(sha512_state intermediate) {
+    memcpy( intermediate, h, 8 * sizeof(uint64_t) );
 }
 
 } /* namespace sphincs_plus */

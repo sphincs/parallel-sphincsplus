@@ -148,7 +148,7 @@ bool keygen_test::run( sphincs_plus::key& k,
         // Make sure that it generated the same keys
     if (0 != memcmp( pub_key, k.get_public_key(), len_pub) ||
         0 != memcmp( priv_key, k.get_private_key(), len_priv)) {
-        printf( "*** KEY GENERATION WITH FIXED ENTROPY GENERATED DIFFERNT KEYS\n" );
+        printf( "*** KEY GENERATION WITH FIXED ENTROPY GENERATED DIFFERENT KEYS\n" );
         return false;
     }
 
