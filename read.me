@@ -18,8 +18,8 @@ Here is how this package is used:
 
 - Step 1: define an object that denotes the key, as in:
 
-    sphincs_plus::key_sha256_128s_simple signer;  // This says we're using
-                   // the SPHINCS+-SHA-256-128s-simple parameter set
+    sphincs_plus::key_sha2_128s_simple signer;  // This says we're using
+                   // the SPHINCS+-SHA-2-128s-simple parameter set
                    // There are classes for all 36 parameter sets
 
 - Step 2: give the signer a key.  Here are the possible options:
@@ -98,15 +98,15 @@ Here is how this package is used:
       while generating a signature; passing a 1 signifies that we shouldn't
       spawn any child threads; it is also subject to a sane maximum.
 
-    - All key classes (such as key_sha256_128s_simple) are subclasses of
+    - All key classes (such as key_sha2_128s_simple) are subclasses of
       a master sphincs_plus::key class, this logic works as expected:
           sphincs_key::key* k;
           if (i_am_in_a_haraka_mood)
              k = new sphincs_plus::key_haraka_128s_simple;
           else if (perhaps_sha_would_be_better)
-             k = new sphincs_plus::key_sha256_128s_simple;
+             k = new sphincs_plus::key_sha2_128s_simple;
           else
-             k = new sphincs_plus::key_shake256_128s_simple;
+             k = new sphincs_plus::key_shake_128s_simple;
           k->generate_key_pair();
 
 
