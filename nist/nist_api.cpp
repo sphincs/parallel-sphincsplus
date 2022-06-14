@@ -13,13 +13,13 @@ extern "C" {
 // The NIST API assumes that the parameter set is compiled in
 // This is what chooses it
 #if !defined( SPX_PARAMETER_SET )
-#define SPX_PARAMETER_SET sha256_128f_robust
+#define SPX_PARAMETER_SET sha2_128f_robust
 #endif
 
 #define CONCAT(a, b) CONCAT2(a, b)
 #define CONCAT2(a, b) a ## b
 typedef sphincs_plus :: CONCAT( key_, SPX_PARAMETER_SET ) KEY_TYPE;
-    // sphincs_plus::key_sha256_128f_robust in the default case
+    // sphincs_plus::key_sha2_128f_robust in the default case
 
 extern "C" {    /* These functions use the C ABI */
 
