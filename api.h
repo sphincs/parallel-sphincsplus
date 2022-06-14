@@ -328,7 +328,7 @@ protected:
     /// This is the log2 of the number of hashes we can compute in parallel
     virtual unsigned num_log_track(void) = 0;
 
-    // Pointers into the addr structure that we use; SHA-256
+    // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
     unsigned offset_layer, offset_tree, offset_type;
     unsigned offset_kp_addr1, offset_kp_addr2;
@@ -533,8 +533,8 @@ public:
 };
 
 ///
-/// This abstract class is for SHA256-based parameter sets
-class sha256_hash : public key {
+/// This abstract class is for SHA2-based parameter sets
+class sha2_hash : public key {
 protected:
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
@@ -553,7 +553,7 @@ protected:
               const unsigned char *msg, size_t len_msg );
 
     // These are implementations of the prf_msg/h_msg functions
-    // that use SHA512 internally.  It is used by the SHA256-L3, L5
+    // that use SHA512 internally.  It is used by the SHA2-L3, L5
     // parameter sets, in this class so that child L5 classes
     // can redirect the virtual functions to these
     void prf_msg_512( unsigned char *result,
@@ -569,16 +569,16 @@ protected:
     virtual unsigned num_track(void);
     virtual unsigned num_log_track(void);
 
-    sha256_hash(void);
+    sha2_hash(void);
 public:
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
 };
 
-/// This abstract class is for SHAKE256-based parameter sets
-class shake256_hash : public key {
+/// This abstract class is for SHAKE2-based parameter sets
+class shake_hash : public key {
 protected:
-    SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The prehashed public seed
+    SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The SHA256 prehashed public seed
 
     virtual unsigned num_track(void);
     virtual unsigned num_log_track(void);
@@ -619,8 +619,8 @@ public:
     virtual void set_private_key(const unsigned char *private_key);
 };
 
-/// This abstract class is for SHA256-simple-based parameter sets
-class key_sha256_simple : public sha256_hash {
+/// This abstract class is for SHA2-simple-based parameter sets
+class key_sha2_simple : public sha2_hash {
 protected:
     virtual void thash(unsigned char *out,
              const unsigned char *in,
@@ -631,8 +631,8 @@ protected:
 };
 
 
-/// This abstract class is for SHA256-robust-based parameter sets
-class key_sha256_robust : public sha256_hash {
+/// This abstract class is for SHA2-robust-based parameter sets
+class key_sha2_robust : public sha2_hash {
 protected:
     virtual void thash(unsigned char *out,
              const unsigned char *in,
@@ -641,8 +641,8 @@ protected:
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
 };
-// And the L3, L5 versions of the SHA256 parameter sets
-class key_sha256_L35_simple : public key_sha256_simple {
+// And the L3, L5 versions of the SHA2 parameter sets
+class key_sha2_L35_simple : public key_sha2_simple {
     /// The prehashed public seed for SHA-512
     uint64_t state_seeded_512[8];
 
@@ -667,7 +667,7 @@ class key_sha256_L35_simple : public key_sha256_simple {
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg );
 };
-class key_sha256_L35_robust : public key_sha256_robust {
+class key_sha2_L35_robust : public key_sha2_robust {
     /// The prehashed public seed for SHA-512
     uint64_t state_seeded_512[8];
 
@@ -693,8 +693,8 @@ class key_sha256_L35_robust : public key_sha256_robust {
               const unsigned char *msg, size_t len_msg );
 };
 
-/// This abstract class is for SHAKE256-simple-based parameter sets
-class key_shake256_simple : public shake256_hash {
+/// This abstract class is for SHAKE-simple-based parameter sets
+class key_shake_simple : public shake_hash {
 protected:
     virtual void thash(unsigned char *out,
              const unsigned char *in,
@@ -704,8 +704,8 @@ protected:
              unsigned int inblocks, addr_t* addrxn);
 };
 
-/// This abstract class is for SHAKE256-robust-based parameter sets
-class key_shake256_robust : public shake256_hash {
+/// This abstract class is for SHAKE-robust-based parameter sets
+class key_shake_robust : public shake_hash {
 protected:
     virtual void thash(unsigned char *out,
              const unsigned char *in,
@@ -744,148 +744,148 @@ protected:
 //
 // And now the individual parameter set classes
 
-/// The class for keys with the SHA256 simple 128F parameter set
-class key_sha256_128f_simple : public key_sha256_simple {
+/// The class for keys with the SHA2 simple 128F parameter set
+class key_sha2_128f_simple : public key_sha2_simple {
 public:
-    key_sha256_128f_simple(void) { set_128f(); }
+    key_sha2_128f_simple(void) { set_128f(); }
 };
 
-/// The class for keys with the SHA256 robust 128F parameter set
-class key_sha256_128f_robust : public key_sha256_robust {
+/// The class for keys with the SHA2 robust 128F parameter set
+class key_sha2_128f_robust : public key_sha2_robust {
 public:
-    key_sha256_128f_robust(void) { set_128f(); }
+    key_sha2_128f_robust(void) { set_128f(); }
 };
 
-/// The class for keys with the SHA256 simple 128S parameter set
-class key_sha256_128s_simple : public key_sha256_simple {
+/// The class for keys with the SHA2 simple 128S parameter set
+class key_sha2_128s_simple : public key_sha2_simple {
 public:
-    key_sha256_128s_simple(void) { set_128s(); }
+    key_sha2_128s_simple(void) { set_128s(); }
 };
 
-/// The class for keys with the SHA256 robust 128S parameter set
-class key_sha256_128s_robust : public key_sha256_robust {
+/// The class for keys with the SHA2 robust 128S parameter set
+class key_sha2_128s_robust : public key_sha2_robust {
 public:
-    key_sha256_128s_robust(void) { set_128s(); }
+    key_sha2_128s_robust(void) { set_128s(); }
 };
 
-/// The class for keys with the SHA256 simple 192F parameter set
-class key_sha256_192f_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHA2 simple 192F parameter set
+class key_sha2_192f_simple : public key_sha2_L35_simple {
 public:
-    key_sha256_192f_simple(void) { set_192f(); }
+    key_sha2_192f_simple(void) { set_192f(); }
 };
 
-/// The class for keys with the SHA256 robust 192F parameter set
-class key_sha256_192f_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHA2 robust 192F parameter set
+class key_sha2_192f_robust : public key_sha2_L35_robust {
 public:
-    key_sha256_192f_robust(void) { set_192f(); }
+    key_sha2_192f_robust(void) { set_192f(); }
 };
 
-/// The class for keys with the SHA256 simple 192S parameter set
-class key_sha256_192s_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHA2 simple 192S parameter set
+class key_sha2_192s_simple : public key_sha2_L35_simple {
 public:
-    key_sha256_192s_simple(void) { set_192s(); }
+    key_sha2_192s_simple(void) { set_192s(); }
 };
 
-/// The class for keys with the SHA256 robust 192S parameter set
-class key_sha256_192s_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHA2 robust 192S parameter set
+class key_sha2_192s_robust : public key_sha2_L35_robust {
 public:
-    key_sha256_192s_robust(void) { set_192s(); }
+    key_sha2_192s_robust(void) { set_192s(); }
 };
 
-/// The class for keys with the SHA256 simple 256F parameter set
-class key_sha256_256f_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHA2 simple 256F parameter set
+class key_sha2_256f_simple : public key_sha2_L35_simple {
 public:
-    key_sha256_256f_simple(void) { set_256f(); }
+    key_sha2_256f_simple(void) { set_256f(); }
 };
 
-/// The class for keys with the SHA256 robust 256F parameter set
-class key_sha256_256f_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHA2 robust 256F parameter set
+class key_sha2_256f_robust : public key_sha2_L35_robust {
 public:
-    key_sha256_256f_robust(void) { set_256f(); }
+    key_sha2_256f_robust(void) { set_256f(); }
 };
 
-/// The class for keys with the SHA256 simple 256S parameter set
-class key_sha256_256s_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHA2 simple 256S parameter set
+class key_sha2_256s_simple : public key_sha2_L35_simple {
 public:
-    key_sha256_256s_simple(void) { set_256s(); }
+    key_sha2_256s_simple(void) { set_256s(); }
 };
 
-/// The class for keys with the SHA256 robust 256S parameter set
-class key_sha256_256s_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHA2 robust 256S parameter set
+class key_sha2_256s_robust : public key_sha2_L35_robust {
 public:
-    key_sha256_256s_robust(void) { set_256s(); }
+    key_sha2_256s_robust(void) { set_256s(); }
 };
 
-/// The class for keys with the SHAKE256 simple 128F parameter set
-class key_shake256_128f_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 128F parameter set
+class key_shake_128f_simple : public key_shake_simple {
 public:
-    key_shake256_128f_simple(void) { set_128f(); }
+    key_shake_128f_simple(void) { set_128f(); }
 };
 
-/// The class for keys with the SHAKE256 robust 128F parameter set
-class key_shake256_128f_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 128F parameter set
+class key_shake_128f_robust : public key_shake_robust {
 public:
-    key_shake256_128f_robust(void) { set_128f(); }
+    key_shake_128f_robust(void) { set_128f(); }
 };
 
-/// The class for keys with the SHAKE256 simple 128S parameter set
-class key_shake256_128s_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 128S parameter set
+class key_shake_128s_simple : public key_shake_simple {
 public:
-    key_shake256_128s_simple(void) { set_128s(); }
+    key_shake_128s_simple(void) { set_128s(); }
 };
 
-/// The class for keys with the SHAKE256 robust 128S parameter set
-class key_shake256_128s_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 128S parameter set
+class key_shake_128s_robust : public key_shake_robust {
 public:
-    key_shake256_128s_robust(void) { set_128s(); }
+    key_shake_128s_robust(void) { set_128s(); }
 };
 
-/// The class for keys with the SHAKE256 simple 192F parameter set
-class key_shake256_192f_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 192F parameter set
+class key_shake_192f_simple : public key_shake_simple {
 public:
-    key_shake256_192f_simple(void) { set_192f(); }
+    key_shake_192f_simple(void) { set_192f(); }
 };
 
-/// The class for keys with the SHAKE256 robust 192F parameter set
-class key_shake256_192f_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 192F parameter set
+class key_shake_192f_robust : public key_shake_robust {
 public:
-    key_shake256_192f_robust(void) { set_192f(); }
+    key_shake_192f_robust(void) { set_192f(); }
 };
 
-/// The class for keys with the SHAKE256 simple 192S parameter set
-class key_shake256_192s_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 192S parameter set
+class key_shake_192s_simple : public key_shake_simple {
 public:
-    key_shake256_192s_simple(void) { set_192s(); }
+    key_shake_192s_simple(void) { set_192s(); }
 };
 
-/// The class for keys with the SHAKE256 robust 192S parameter set
-class key_shake256_192s_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 192S parameter set
+class key_shake_192s_robust : public key_shake_robust {
 public:
-    key_shake256_192s_robust(void) { set_192s(); }
+    key_shake_192s_robust(void) { set_192s(); }
 };
 
-/// The class for keys with the SHAKE256 simple 256F parameter set
-class key_shake256_256f_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 256F parameter set
+class key_shake_256f_simple : public key_shake_simple {
 public:
-    key_shake256_256f_simple(void) { set_256f(); }
+    key_shake_256f_simple(void) { set_256f(); }
 };
 
-/// The class for keys with the SHAKE256 robust 256F parameter set
-class key_shake256_256f_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 256F parameter set
+class key_shake_256f_robust : public key_shake_robust {
 public:
-    key_shake256_256f_robust(void) { set_256f(); }
+    key_shake_256f_robust(void) { set_256f(); }
 };
 
-/// The class for keys with the SHAKE256 simple 256S parameter set
-class key_shake256_256s_simple : public key_shake256_simple {
+/// The class for keys with the SHAKE simple 256S parameter set
+class key_shake_256s_simple : public key_shake_simple {
 public:
-    key_shake256_256s_simple(void) { set_256s(); }
+    key_shake_256s_simple(void) { set_256s(); }
 };
 
-/// The class for keys with the SHAKE256 robust 256S parameter set
-class key_shake256_256s_robust : public key_shake256_robust {
+/// The class for keys with the SHAKE robust 256S parameter set
+class key_shake_256s_robust : public key_shake_robust {
 public:
-    key_shake256_256s_robust(void) { set_256s(); }
+    key_shake_256s_robust(void) { set_256s(); }
 };
 
 /// The class for keys with the HARAKA simple 128F parameter set

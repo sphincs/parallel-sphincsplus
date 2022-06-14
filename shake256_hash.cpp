@@ -1,5 +1,5 @@
 /*
- * This file has support for SHAKE-256-based parameter sets
+ * This file has support for SHAKE-based parameter sets
  * This does those functions that are the same for both simple and
  * robust parameter sets
  */ 
@@ -13,9 +13,9 @@ namespace sphincs_plus {
 
 /*
  * 4-way parallel version of prf_addr; takes 4x as much input and output
- * This is SHAKE-256 specific
+ * This is SHAKE specific
  */
-void shake256_hash::prf_addr_xn(unsigned char **out,
+void shake_hash::prf_addr_xn(unsigned char **out,
                 const addr_t* addrx4)
 {
     SHAKE256_4X_CTX ctx;
@@ -41,7 +41,7 @@ void shake256_hash::prf_addr_xn(unsigned char **out,
 }
 
 // prf_msg is defined as SHAKE256( prf || optrand || msg )
-void shake256_hash::prf_msg( unsigned char *result,
+void shake_hash::prf_msg( unsigned char *result,
               const unsigned char *opt_rand,
               const unsigned char *msg, size_t len_msg ) {
     SHAKE256_CTX ctx;
@@ -60,7 +60,7 @@ void shake256_hash::prf_msg( unsigned char *result,
 
 // Here, len_result is not the size of the buffer (which it is in most
 // similar contexts); instead, it is the number of output bytes desired
-void shake256_hash::h_msg( unsigned char *result, size_t len_result,
+void shake_hash::h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg ) {
     SHAKE256_CTX ctx;
@@ -83,20 +83,20 @@ void shake256_hash::h_msg( unsigned char *result, size_t len_result,
 
 //
 // Scurry away copies of the public and secret seeds
-void shake256_hash::set_public_key(const unsigned char *public_key) {
+void shake_hash::set_public_key(const unsigned char *public_key) {
     key::set_public_key(public_key);
     shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
 }
 
-void shake256_hash::set_private_key(const unsigned char *private_key) {
+void shake_hash::set_private_key(const unsigned char *private_key) {
     key::set_private_key(private_key);
     shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
 }
 
-unsigned shake256_hash::num_track(void) {
+unsigned shake_hash::num_track(void) {
     return 4;
 }
-unsigned shake256_hash::num_log_track(void) {
+unsigned shake_hash::num_log_track(void) {
     return 2;
 }
 
