@@ -1,5 +1,6 @@
-Sphincs+ is a signature cryptosystem that was submitted to the NIST
-Postquantum Standardization; it was accepted as a Round 3 Alternate.
+Sphincs+ is a signature cryptosystem that was selected by NIST to be
+an approved postquantum signature algorithm.
+
 It has the most conservative security assumption of all candidates
 (essentially, the second preimage resistance of the underlying hash function,
 which appears to be a safer assumption than any other; in particular, any
@@ -7,7 +8,7 @@ signature method that first hashes the message, and then generates the
 signature based on that hash needs to include a security assumption of that
 hash - Sphincs+ makes no other security assumptions).  However, on the
 drawback side, Sphincs+ signatures and the signature generation time are both
-large (which is why it is an alternate).
+large.
 
 This package attempts to reduce one of the drawbacks (namely, the signature
 generation time; we can't reduce the signature size without breaking
