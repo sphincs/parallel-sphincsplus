@@ -26,16 +26,16 @@ const int max_wots_digits = 67; //<! Maximum number of digits
 const int max_wots_bytes = max_len_hash * max_wots_digits; //<! The maximum
                            //<! size of a WOTS+ value
 const int addr_bytes = 32; //<! Standard addr structures are 32 bytes lon
-const int sha256_addr_bytes = 22; //<! SHA256 uses a shortened addr structure
-                                  //<! that's 22 bytes long
+const int sha2_addr_bytes = 22; //<! SHA2 uses a shortened addr structure
+                           //<! that's 22 bytes long
 const int sha256_output_size = 32; //<! The size of an untruncated SHA256 output
 const int sha256_block_size = 64; //<! SHA256 processes things in 64 byte chunks
 const unsigned sha512_output_size = 64; //<! SHA-512 generates 64 bytes
                                     //<! (or 512 bits) of output
-const int max_mgf1_input = max_len_hash + sha256_addr_bytes; //<! The
+const int max_mgf1_input = max_len_hash + sha2_addr_bytes; //<! The
                             //<! maximum seed size for an MGF1 input; this
                             //<! maximum occurs during a message hash for L5
-                            //<! SHA256-robust parameter sets.
+                            //<! SHA2-robust parameter sets.
 const unsigned max_track = 8; //<! The maximum number of hashes we can do in
                             //<! parallel (on a single thread) is 8
 

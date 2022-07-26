@@ -12,7 +12,7 @@ namespace sphincs_plus {
 /**
  * The simple version of thash
  */
-void key_sha256_simple::thash( unsigned char *out,
+void key_sha2_simple::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     unsigned char outbuf[sha256_output_size];
@@ -23,7 +23,7 @@ void key_sha256_simple::thash( unsigned char *out,
 
     // Starting at state_seeded, hash the addr structure and the
     // input blocks
-    ctx.update(addr, sha256_addr_bytes);
+    ctx.update(addr, sha2_addr_bytes);
     ctx.update(in, inblocks * len_hash() );
     ctx.final(outbuf);
 
@@ -33,7 +33,7 @@ void key_sha256_simple::thash( unsigned char *out,
 /**
  * 8-way parallel version of thash; takes 8x as much input and output
  */
-void key_sha256_simple::thash_xn(unsigned char **out,
+void key_sha2_simple::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx8)
@@ -53,7 +53,7 @@ void key_sha256_simple::thash_xn(unsigned char **out,
                     &addrx8[5],
                     &addrx8[6],
                     &addrx8[7],
-                    sha256_addr_bytes );
+                    sha2_addr_bytes );
 
     sha256_update8x(&ctx,
                     in[0],

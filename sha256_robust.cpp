@@ -14,7 +14,7 @@ namespace sphincs_plus {
 /**
  * The robust version of thash
  */
-void key_sha256_robust::thash( unsigned char* out,
+void key_sha2_robust::thash( unsigned char* out,
              const unsigned char* in,
              unsigned int inblocks, addr_t addr) {
     unsigned char outbuf[sha256_output_size];
@@ -25,14 +25,14 @@ void key_sha256_robust::thash( unsigned char* out,
     ctx.init_from_intermediate(state_seeded, sha256_block_size);
 
     // Initialize the seed for the MGF1 engine
-    unsigned char mgf1_seed[ max_len_hash + sha256_addr_bytes ];
+    unsigned char mgf1_seed[ max_len_hash + sha2_addr_bytes ];
     memcpy( mgf1_seed, get_public_seed(), n );
-    memcpy( &mgf1_seed[n], addr, sha256_addr_bytes );
-    mgf1<SHA256_CTX> bitstream( mgf1_seed, n + sha256_addr_bytes );
+    memcpy( &mgf1_seed[n], addr, sha2_addr_bytes );
+    mgf1<SHA256_CTX> bitstream( mgf1_seed, n + sha2_addr_bytes );
 
     // Starting at state_seeded, hash the addr structure and the
     // input blocks xored with the mgf1 stream
-    ctx.update(addr, sha256_addr_bytes);
+    ctx.update(addr, sha2_addr_bytes);
     for (unsigned i = 0; i < inblocks; i++) {
         unsigned char buffer[max_len_hash];
         bitstream.output( buffer, n );
@@ -49,7 +49,7 @@ void key_sha256_robust::thash( unsigned char* out,
 /**
  * 8-way parallel version of thash; takes 8x as much input and output
  */
-void key_sha256_robust::thash_xn(unsigned char **out,
+void key_sha2_robust::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx8)
@@ -68,17 +68,17 @@ void key_sha256_robust::thash_xn(unsigned char **out,
                     &addrx8[5],
                     &addrx8[6],
                     &addrx8[7],
-                    sha256_addr_bytes );
+                    sha2_addr_bytes );
 
     // Fire up the MGF1 engine
     unsigned char *ptr_seed[8];
-    unsigned char seed[ 8*(max_len_hash + sha256_addr_bytes) ];
+    unsigned char seed[ 8*(max_len_hash + sha2_addr_bytes) ];
     for (int i=0; i<8; i++) {
-	ptr_seed[i] = &seed[ i * (max_len_hash+sha256_addr_bytes) ];
+	ptr_seed[i] = &seed[ i * (max_len_hash+sha2_addr_bytes) ];
 	memcpy( ptr_seed[i], get_public_seed(), n );
-	memcpy( ptr_seed[i]+n, &addrx8[i], sha256_addr_bytes );
+	memcpy( ptr_seed[i]+n, &addrx8[i], sha2_addr_bytes );
     }
-    mgf1_8x bit_stream( ptr_seed, n + sha256_addr_bytes );
+    mgf1_8x bit_stream( ptr_seed, n + sha2_addr_bytes );
 
     unsigned char buffer[8][max_len_hash];
     unsigned char *ptr_buffer[8];

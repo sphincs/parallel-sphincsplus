@@ -1,5 +1,5 @@
 /*
- * This file has support for the low level SHAKE-256-robust routines
+ * This file has support for the low level SHAKE-robust routines
  */
 #include <string.h>
 #include "api.h"
@@ -12,7 +12,7 @@ namespace sphincs_plus {
 /**
  * The robust version of thash
  */
-void key_shake256_robust::thash( unsigned char *out,
+void key_shake_robust::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     unsigned n = len_hash();
@@ -43,7 +43,7 @@ void key_shake256_robust::thash( unsigned char *out,
  * Idea of the future: it might be faster to generate a precomputed
  * mask for both ctx and mask_ctx, and initialize both with it...
  */
-void key_shake256_robust::thash_xn(unsigned char **out,
+void key_shake_robust::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx4)

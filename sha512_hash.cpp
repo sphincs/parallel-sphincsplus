@@ -1,5 +1,5 @@
 /*
- * This file has support for the L3, L5 SHA-256-based parameter sets
+ * This file has support for the L3, L5 SHA-2-based parameter sets
  * These parameter sets use SHA-512 to do the initial message hashes
  */ 
 #include <string.h>
@@ -10,21 +10,21 @@
 
 namespace sphincs_plus {
 
-// For the SHA256-L3, L5 parameter sets, redirect the PRF_msg to the version
+// For the SHA2-L3, L5 parameter sets, redirect the PRF_msg to the version
 // that uses SHA-512
-void key_sha256_L35_simple::prf_msg( unsigned char *result,
+void key_sha2_L35_simple::prf_msg( unsigned char *result,
 		              const unsigned char *opt,
 			      const unsigned char *msg, size_t len_msg ) {
     prf_msg_512(result, opt, msg, len_msg);
 }
-void key_sha256_L35_robust::prf_msg( unsigned char *result,
+void key_sha2_L35_robust::prf_msg( unsigned char *result,
 		              const unsigned char *opt,
 			      const unsigned char *msg, size_t len_msg ) {
     prf_msg_512(result, opt, msg, len_msg);
 }
 
 // prf_msg is defined as HMAC( prf, opt_rand || msg )
-void sha256_hash::prf_msg_512( unsigned char *result,
+void sha2_hash::prf_msg_512( unsigned char *result,
               const unsigned char *opt_rand,
               const unsigned char *msg, size_t len_msg ) {
     SHA512_CTX ctx;
@@ -61,14 +61,14 @@ void sha256_hash::prf_msg_512( unsigned char *result,
     ctx.zeroize();
 }
 
-// For the SHA256-L3, L5 parameter sets, redirect the h_msg to the version
+// For the SHA2-L3, L5 parameter sets, redirect the h_msg to the version
 // that uses SHA-512
-void key_sha256_L35_simple::h_msg( unsigned char *result, size_t len_result,
+void key_sha2_L35_simple::h_msg( unsigned char *result, size_t len_result,
 		              const unsigned char *r,
 			      const unsigned char *msg, size_t len_msg ) {
     h_msg_512(result, len_result, r, msg, len_msg);
 }
-void key_sha256_L35_robust::h_msg( unsigned char *result, size_t len_result,
+void key_sha2_L35_robust::h_msg( unsigned char *result, size_t len_result,
 		              const unsigned char *r,
 			      const unsigned char *msg, size_t len_msg ) {
     h_msg_512(result, len_result, r, msg, len_msg);
@@ -76,7 +76,7 @@ void key_sha256_L35_robust::h_msg( unsigned char *result, size_t len_result,
 
 // Here, len_result is not the size of the buffer (which it is in most
 // similar contexts); instead, it is the number of output bytes desired
-void sha256_hash::h_msg_512( unsigned char *result, size_t len_result,
+void sha2_hash::h_msg_512( unsigned char *result, size_t len_result,
               const unsigned char *r,
               const unsigned char *msg, size_t len_msg ) {
     unsigned char msg_hash[ sha512_output_size  + 2*max_len_hash ];

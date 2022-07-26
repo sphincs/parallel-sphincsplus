@@ -170,42 +170,42 @@ bool test_keygen(bool fast_flag, enum noise_level level) {
     // and selected 'S' parameter sets
  
     // L1 parameter sets
-    RUN_TEST( sha256_128s_simple, true );
-    RUN_TEST( sha256_128f_simple, true );
-    RUN_TEST( sha256_128s_robust, false );
-    RUN_TEST( sha256_128f_robust, true );
-    RUN_TEST( shake256_128s_simple, true ); 
-    RUN_TEST( shake256_128f_simple, true );
-    RUN_TEST( shake256_128s_robust, false );
-    RUN_TEST( shake256_128f_robust, true );
+    RUN_TEST( sha2_128s_simple, true );
+    RUN_TEST( sha2_128f_simple, true );
+    RUN_TEST( sha2_128s_robust, false );
+    RUN_TEST( sha2_128f_robust, true );
+    RUN_TEST( shake_128s_simple, true ); 
+    RUN_TEST( shake_128f_simple, true );
+    RUN_TEST( shake_128s_robust, false );
+    RUN_TEST( shake_128f_robust, true );
     RUN_TEST( haraka_128s_simple, false );
     RUN_TEST( haraka_128f_simple, true );
     RUN_TEST( haraka_128s_robust, true );
     RUN_TEST( haraka_128f_robust, true );
 
     // L3 parameter sets
-    RUN_TEST( sha256_192s_simple, false );
-    RUN_TEST( sha256_192f_simple, true );
-    RUN_TEST( sha256_192s_robust, false );
-    RUN_TEST( sha256_192f_robust, true );
-    RUN_TEST( shake256_192s_simple, false );
-    RUN_TEST( shake256_192f_simple, true );
-    RUN_TEST( shake256_192s_robust, false );
-    RUN_TEST( shake256_192f_robust, true );
+    RUN_TEST( sha2_192s_simple, false );
+    RUN_TEST( sha2_192f_simple, true );
+    RUN_TEST( sha2_192s_robust, false );
+    RUN_TEST( sha2_192f_robust, true );
+    RUN_TEST( shake_192s_simple, false );
+    RUN_TEST( shake_192f_simple, true );
+    RUN_TEST( shake_192s_robust, false );
+    RUN_TEST( shake_192f_robust, true );
     RUN_TEST( haraka_192s_simple, false );
     RUN_TEST( haraka_192f_simple, true );
     RUN_TEST( haraka_192s_robust, false );
     RUN_TEST( haraka_192f_robust, true );
 
     // L5 parameter sets
-    RUN_TEST( sha256_256s_simple, false );
-    RUN_TEST( sha256_256f_simple, true );
-    RUN_TEST( sha256_256s_robust, false );
-    RUN_TEST( sha256_256f_robust, true );
-    RUN_TEST( shake256_256s_simple, false );
-    RUN_TEST( shake256_256f_simple, true );
-    RUN_TEST( shake256_256s_robust, false );
-    RUN_TEST( shake256_256f_robust, true );
+    RUN_TEST( sha2_256s_simple, false );
+    RUN_TEST( sha2_256f_simple, true );
+    RUN_TEST( sha2_256s_robust, false );
+    RUN_TEST( sha2_256f_robust, true );
+    RUN_TEST( shake_256s_simple, false );
+    RUN_TEST( shake_256f_simple, true );
+    RUN_TEST( shake_256s_robust, false );
+    RUN_TEST( shake_256f_robust, true );
     RUN_TEST( haraka_256s_simple, false );
     RUN_TEST( haraka_256f_simple, true );
     RUN_TEST( haraka_256s_robust, false );

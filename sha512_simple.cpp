@@ -12,7 +12,7 @@ namespace sphincs_plus {
 /**
  * The simple version of thash
  */
-void key_sha256_L35_simple::thash( unsigned char *out,
+void key_sha2_L35_simple::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     // thash is never called with inblocks==1, hence we don't need to
@@ -26,7 +26,7 @@ void key_sha256_L35_simple::thash( unsigned char *out,
 
     // Starting at state_seeded, hash the addr structure and the
     // input blocks
-    ctx.update(addr, sha256_addr_bytes);
+    ctx.update(addr, sha2_addr_bytes);
     ctx.update(in, inblocks * len_hash() );
     ctx.final(outbuf);
 
@@ -37,7 +37,7 @@ void key_sha256_L35_simple::thash( unsigned char *out,
  * 8-way parallel version of thash; takes 8x as much input and output
  * Note that, for inblocks==1, the alternative f_xn function is used
  */
-void key_sha256_L35_simple::thash_xn(unsigned char **out,
+void key_sha2_L35_simple::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx8) {
@@ -53,7 +53,7 @@ void key_sha256_L35_simple::thash_xn(unsigned char **out,
                     &addrx8[i+1],
                     &addrx8[i+2],
                     &addrx8[i+3],
-                    sha256_addr_bytes );
+                    sha2_addr_bytes );
 
         sha512_update4x(&ctx,
                     in[i+0],
@@ -82,13 +82,13 @@ void key_sha256_L35_simple::thash_xn(unsigned char **out,
 //
 // For the single input version of T, fall back to the base version, which
 // uses SHA-256
-void key_sha256_L35_simple::f_xn(unsigned char **out, unsigned char **in,
+void key_sha2_L35_simple::f_xn(unsigned char **out, unsigned char **in,
                                  addr_t* addrxn) {
-    key_sha256_simple::thash_xn(out, in, 1, addrxn);
+    key_sha2_simple::thash_xn(out, in, 1, addrxn);
 }
 
 // This precomputes the SHA-512 hash state after processing the public seed
-void key_sha256_L35_simple::initialize_public_seed(const unsigned char *pub_seed) {
+void key_sha2_L35_simple::initialize_public_seed(const unsigned char *pub_seed) {
     uint8_t block[sha512_block_size];
     size_t i;
     size_t n = len_hash();
@@ -106,7 +106,7 @@ void key_sha256_L35_simple::initialize_public_seed(const unsigned char *pub_seed
     ctx.export_intermediate( state_seeded_512 );
 
     // Also initialize the SHA-256 initial hash (which we also use)
-    sha256_hash::initialize_public_seed(pub_seed);
+    sha2_hash::initialize_public_seed(pub_seed);
 }
 
 } /* sphincs_plus */
