@@ -22,7 +22,7 @@ OBJECTS =         $(subst .cpp,.o,$(SOURCES))
 HEADERS =         api.h internal.h mgf1_8x.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
-		  test_verify.cpp test_thread.cpp test_testvector.cpp \
+		  test_verify.cpp test_thread.cpp test_testvector.cpp test_fault.cpp \
 		  test_sha512.cpp
 
 TESTS = test PQCgenKAT_sign test_sphincs
