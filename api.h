@@ -219,8 +219,7 @@ protected:
     ///                 that'll be used to combine internal nodes
     /// @param[in] idx_leaf The index of the leaf (0 is leftmost) that
     ///                 we'll be generating the authentication path of.
-    ///                 Also will be passed to the WOTS routines to indicate
-    ///                 which WOTS+ siganture we'll generate
+    ///                 ~0 if we're not generating an authentication path
     /// @param[in] mode Allows us to generate the entire tree, or the left
     ///                 or right subtree directly underneath the root
     ///                 0 - Generate the entire tree
