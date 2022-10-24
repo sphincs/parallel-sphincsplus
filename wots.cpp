@@ -80,7 +80,10 @@ void key::compute_chains(unsigned char *array,
         if (max_seen == 1) break;   // Everything was moved to list 0
                                     // That means we're done
 
-        // Scan for the top num_track elements
+        // First, we identity where the top num_track elements are.  They
+        // will be the top num_track elements on the board, so we scan for
+        // the topmost lists that give us that many.  Now, the bottom
+        // list we scanned may have more than enough elements in it.
         int c = 0;      // Number of elements we've seen so far on this pass
         for (i = max_seen-1; i>0; i--) {
             if (c + count[i] >= num_track) {
@@ -92,6 +95,14 @@ void key::compute_chains(unsigned char *array,
                                        // the elements not already on the
                                        // bottom
 
+        // Ok, we've identified the lists.  Now, starting at the bottom list
+        // we identitied, move those lists down one (with the note that for
+        // the first list we're moving, which is the bottom most list of the
+        // scan, may be a partial move, as there might be more on that list
+        // than what we can move
+        // We do this in bottom-up order so that we don't accidentally re-move
+        // a list -- thash can advance a list element only by one, so we can
+        // move an element only by one per iteration)
         // Load things up, starting with the first num_track-c elements
         // from row i
         int d = 0;
