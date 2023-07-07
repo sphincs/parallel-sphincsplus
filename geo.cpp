@@ -53,16 +53,26 @@ public:
         unsigned r = 0;
         unsigned count_bits = 0;
         while (bits >= bits_in_byte) {
-            r |= *p++ << count_bits;
+	    // The region we're extracting extends to the end of the byte
+	    // we're scanning; extract what's remaining, and add it to
+	    // the result (after shiting it into the correct position)
+            r |= *p++ << (bits - bits_in_byte);
             count_bits += bits_in_byte;
             bits -= bits_in_byte;
             bits_in_byte = 8;
         }
         if (bits > 0) {
-            unsigned mask = (1 << bits) - 1;
-            r += (*p & mask) << count_bits;
-            *p >>= bits;
+	    // The region we're extracting ends in the middle of this byte
+	    // Set the mask to cover that region; add those to the result
+	    // (after shiting it to the correct position)
+            unsigned mask = ((1 << bits) - 1) << (bits_in_byte - bits);
+            r += (*p & mask) >> (bits_in_byte - bits);
+
             bits_in_byte -= bits;
+
+	    // And remove those bits from the byte (so it doesn't interfer
+	    //  with the next field we extract)
+            *p &= ~mask;
         }
         return r;
     }
