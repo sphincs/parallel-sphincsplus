@@ -146,6 +146,8 @@ private:
                            //<! signing.  We allow the application to tell
                            //<! us what this should be
 
+    bool detect_fault;     // Are we in fault detection mode?
+
     size_t initialize_geometry(struct signature_geometry& geo);
     void hash_message(struct signature_geometry& geo,
            const unsigned char *r,
@@ -527,6 +529,7 @@ public:
     /// @param[in] n Try to use n threads.  This count includes the parent
     ///             thread
     void set_num_thread(unsigned n) { num_thread = n; }
+    void set_fault_detection(bool flag) { detect_fault = flag; }
 
     virtual ~key(void);
 };

@@ -24,6 +24,7 @@ static struct {
     { "sign", test_sign, "signature generation test", false, 0 },
     { "verify", test_verify, "signature verification test", true, 0 },
     { "thread", test_thread, "threading test", false, 0 },
+    { "fault", test_fault, "fault detection test", false, 0 },
  /* Add more here */  
 };
 

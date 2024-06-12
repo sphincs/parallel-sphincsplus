@@ -98,6 +98,11 @@ Here is how this package is used:
     - signer.set_num_thread(4) sets the number of threads we attempt to use
       while generating a signature; passing a 1 signifies that we shouldn't
       spawn any child threads; it is also subject to a sane maximum.
+      
+    - signer.set_fault_detection(true) tells the Sphincs+ code to
+      automatically detect fault attacks (and fail the signer process if
+      detected); this does slow the signing process by perhaps a factor
+      of two.
 
     - All key classes (such as key_sha2_128s_simple) are subclasses of
       a master sphincs_plus::key class, this logic works as expected:
