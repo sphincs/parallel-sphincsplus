@@ -65,7 +65,7 @@ success_flag key::verify_internal(
     for (unsigned i=0; i<k(); i++) {
         memcpy(&fors_node[i * n], signature + geo.fors_offset[i], n );
     }
-    uint track = num_track();
+    unsigned track = num_track();
     addr_t addrx[ max_track ];
     memset( addrx, 0, track * addr_bytes );
     for (int i=0; i<8;i++) {
