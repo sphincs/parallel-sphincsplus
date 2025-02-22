@@ -43,6 +43,10 @@ test: test.cpp $(OBJECTS)
 test_slh_dsa: $(TEST_SOURCES) $(OBJECTS)
 	$(CPP) $(CFLAGS) -o $@ $(TEST_SOURCES) $(OBJECTS) -lpthread
 
+# The github action expects 'test_sphincs'
+test_sphincs: test_slh_dsa
+	cp test_slh_dsa test_sphincs
+
 PQCgenKAT_sign: PQCgenKAT_sign.o nist/nist_api.cpp rng.o $(OBJECTS) $(DET_HEADERS)
 	        $(CPP) $(CFLAGS) -o $@ $(OBJECTS) nist/nist_api.cpp rng.o $< -lcrypto -lpthread
 
