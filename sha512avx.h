@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 typedef struct SHA512state4x {
     __m256i s[8];
@@ -27,6 +27,6 @@ void sha512_final4x(sha512ctx4x *ctx,
                      __m256i out2[2],
                      __m256i out3[2]);
 
-} /* sphincs_plus */
+} /* slh_dsa */
 
 #endif

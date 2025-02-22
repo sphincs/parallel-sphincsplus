@@ -4,7 +4,7 @@
 #include "internal.h"
 #include "immintrin.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 class mgf1_sha512_4x {
     unsigned char state[4][max_mgf1_input+4];
@@ -20,6 +20,6 @@ public:
     void output( unsigned char **buffer, unsigned len_ouptut );
 };
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif /* MGF1_512_4X_H_ */

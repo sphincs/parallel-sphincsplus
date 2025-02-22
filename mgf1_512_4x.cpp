@@ -10,7 +10,7 @@
 #include "mgf1_512_4x.h"
 #include "sha512avx.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 mgf1_sha512_4x::mgf1_sha512_4x( unsigned char **seed_vector, unsigned seed_len ) {
     for (int i=0; i<4; i++) {
@@ -64,5 +64,5 @@ void mgf1_sha512_4x::output( unsigned char **buffer, unsigned len_output ) {
     }
 }
 
-}  /* namespace sphincs_plus */
+}  /* namespace slh_dsa */
 

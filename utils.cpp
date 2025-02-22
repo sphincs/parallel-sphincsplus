@@ -1,7 +1,7 @@
 #include <string.h>
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /**
  * Converts the value of 'in' to 'outlen' bytes in big-endian byte order.
@@ -78,4 +78,4 @@ void zeroize( void *area, size_t len ) {
 #endif
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

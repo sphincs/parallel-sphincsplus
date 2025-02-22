@@ -1,17 +1,16 @@
-#if !defined(SPHINCSPLUS_API_H_)
-#define SPHINCSPLUS_API_H_
+#if !defined(SLH_DSA_API_H_)
+#define SLH_DSA_API_H_
 
 ///
 /// \file api.h
-/// \brief This is the public interface to the fast sphincs implementation
+/// \brief This is the public interface to the fast SLH-DSA implementation
 
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <memory>            // For unique_ptr
-#include "immintrin.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 ///
 /// Flag that indicates whether an operation succeeded or failed
@@ -75,7 +74,7 @@ public:
 success_flag rdrand_fill( void *raget, size_t num_bytes );
 
 ///
-/// We do hashes in several places within the Sphincs+ structure
+/// We do hashes in several places within the SLH-DSA structure
 /// This enum declares the reason for this specific hash
 enum hash_reason {
     ADDR_TYPE_WOTS = 0,    //!< We're hashing as a part of a WOTS+ chain
@@ -89,7 +88,7 @@ enum hash_reason {
 
 ///
 /// This is our designation of an 'address structure', called an ADRS structure
-/// in the Sphincs+ documentation
+/// in the SLH_DSA documentation
 /// It has nothing to do with IP addresses
 typedef unsigned char addr_t[32];
 
@@ -118,14 +117,27 @@ public:
 };
 
 ///
-/// This is the base class for a Sphincs+ key (either public or private)
+/// If we do prehash, we need to tell SLH-DSA which hash function we used.
+/// Passing in this structure is how we do it
+struct hash_type {
+    unsigned length;      //<! Length of the hash (in bytes)
+    unsigned oid_length;  //<! Length of the oid
+    const char *oid;      //<! The value of the oid
+};
+/// The hash functions defined by FIPS 205 for prehashing
+extern hash_type ph_sha256, ph_sha512;
+extern hash_type ph_shake128;  /// This has a 32 byte hash output
+extern hash_type ph_shake256;  /// This has a 64 byte hash output
+
+///
+/// This is the base class for a SLH_DSA key (either public or private)
 /// It can hold a private key (which allows you to sign or verify), a public
 /// key (which only allows you to verify), or no key at all (if you haven't
 /// assigned it a key quite yet).
-/// We derive child classes for all 36 different parameter sets below
+/// We derive child classes for all 12 different parameter sets below
 class key {
 private:
-    // The Sphincs+ geometry; this is private because we don't want
+    // The SLH_DSA geometry; this is private because we don't want
     // anyone reaching in and tweaking it after construction
     size_t len_hash_;
     size_t k_;
@@ -149,7 +161,69 @@ private:
     size_t initialize_geometry(struct signature_geometry& geo);
     void hash_message(struct signature_geometry& geo,
            const unsigned char *r,
-           const unsigned char *message, size_t len_message );
+           unsigned char domain_separator_byte,
+           const void *context, size_t len_context,
+           const void *oid, size_t len_oid,
+           const void *message, size_t len_message );
+
+public:
+    enum sign_flag {
+	sign_success,      //<! The signature was sucessfully generated
+	sign_no_private_key, //<! We don't have a private key
+	sign_bad_context_len, //<! Contexts are limited to 255 bytes
+	sign_buffer_too_short, //<! Signature buffer was too short
+    };
+private:
+
+    /// This is the internal signature function; it provides all the
+    /// functionality that the various sign APIs rely on
+    /// @param[out] signature Where to write the signature.
+    /// @param[in] signature_len The length of the signature buffer
+    /// @param[in] domain_separator_byte 0 or 1 depending on whether we're
+    ///            signing a prehash
+    /// @param[in] context The signature context to sign
+    /// @param[in] len_context The length of the signature context.  Max
+    ///            length is 255 bytes.
+    /// @param[in] oid The pointer to the prehash oid
+    /// @param[in] len_oid The length oid (0 if we're not prehashed)
+    /// @param[in] message The message to sign
+    /// @param[in] len_message The length of the message to sign
+    /// @param[in] rand The object that returns the randomness used to generate
+    ///            this signature.  If 0, this will fall back to determanistic
+    ///            signature generation.  If omitted, this will fall back to
+    ///            a default randomness generation function
+    /// \return sign_flag A flag indicating success or failure reason
+    sign_flag sign_internal(
+            unsigned char *signature, size_t signature_len,
+	    unsigned char domain_separator_byte,
+	    const void *context, size_t len_context,
+	    const void *oid, size_t len_oid,
+            const unsigned char *message, size_t len_message,
+            const random& rand);
+
+    /// This is the internal function to verify a signature; it provides all
+    /// the functionality that the public APIs use
+    /// @param[in] signature The signature we're checking
+    /// @param[in] len_signature The length of the signature
+    /// @param[in] domain_separator_byte 0 or 1 depending on whether we're
+    ///            verifying a prehash
+    /// @param[in] context The signature context to verify
+    /// @param[in] len_context The length of the signature context.  Max
+    ///            length is 255 bytes.
+    /// @param[in] oid The pointer to the prehash oid
+    /// @param[in] len_oid The length oid (0 if we're not prehashed)
+    /// @param[in] message THe message we're checking
+    /// @param[in] len_message The length of the message
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
+    /// \return Success (the signature checked out) or failure (it didn't or
+    /// this key object doesn't have a public key to check)
+    success_flag verify_internal(
+            const unsigned char *signature, size_t len_signature,
+	    unsigned char domain_separator_byte,
+	    const void *context, size_t len_context,
+	    const void *oid, size_t len_oid,
+            const void *message, size_t len_message);
 
 protected:
     size_t len_hash(void) { return len_hash_; } //<! Hash size in bytes
@@ -195,7 +269,7 @@ protected:
     /// We're implementing a 256F parameter set
     void set_256f(void) { set_geometry( 32, 35,  9, 68, 17, 67 ); }
 
-    /// Generate a WOTS signature within the Sphincs+ signature
+    /// Generate a WOTS signature within the SLH-DSA signature
     /// @param[out] sig Where to place the signature
     /// @param[in] merkle_level The level of the Merkle tree is just
     ///     above this; 0 for bottommost
@@ -244,24 +318,38 @@ protected:
 
     // The various tweakable hash functions (both single, and multitrack
     // versions ("_xn")
-    /// Perform the Sphincs+ PRF function on the message
+    /// Perform the SLH-DSA PRF function on the message
     /// @param[out] result Where to place the PRF function output
     /// @param[in] opt The optional randomness
+    /// @param[in] domain_separator_byte 0 or 1 depending on whether we're
+    ///            signing/verifying a prehash
+    /// @param[in] context The signature context to sign/verify
+    /// @param[in] len_context The length of the signature context.  Max
+    ///            length is 255 bytes.
+    /// @param[in] oid The pointer to the prehash oid
+    /// @param[in] len_oid The length oid (0 if we're not prehashed)
     /// @param[in] msg The application-selected message
     /// @param[in] len_message The lenght of the message
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
               const unsigned char *msg, size_t len_msg ) = 0;
-    /// Performs the Sphincs+ H_msg function on the message
+
+    /// Performs the SLH-DSA H_msg function on the message
     /// @param[out] result Where to place the H_msg function output
     /// @param[in] len_result The number of bytes of output to generate
     /// @param[in] r The randomess input
     /// @param[in] msg The application-selected message
-    /// @param[in] len_message The lenght of the message
+    /// @param[in] len_message The length of the message
     virtual void h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
-              const unsigned char *msg, size_t len_msg ) = 0;
-    /// Performs the Sphincs+ F function on an array (size num_track) of
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
+              const void *msg, size_t len_msg ) = 0;
+    /// Performs the SLH-DSA F function on an array (size num_track) of
     /// inputs
     /// @param[out] out An array of pointers to locations to place the results
     ///               of the F functions
@@ -271,7 +359,7 @@ protected:
     ///               this time)
     virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addr);
 
-    /// Performs the Sphincs+ T function on a single input
+    /// Performs the SLH-DSA T function on a single input
     /// @param[out] out Where to place the result of the T function
     /// @param[in] in The message input to the T function
     /// @param[in] inblocks The length (in n byte blocks) of the input
@@ -280,7 +368,7 @@ protected:
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) = 0;
 
-    /// Performs the Sphincs+ T function on an array (size num_track) of
+    /// Performs the SLH-DSA T function on an array (size num_track) of
     /// inputs
     /// @param[out] out An array of pointers to locations to place the results
     ///               of the F functions
@@ -293,7 +381,7 @@ protected:
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn) = 0;
 
-    /// Performs the Sphincs+ PRF function on an array (size num_track) of
+    /// Performs the SLH-DSA PRF function on an array (size num_track) of
     /// inputs
     /// @param[out] out An array of pointers to locations to place the results
     ///               of the PRF functions
@@ -327,7 +415,7 @@ protected:
     /// This is the log2 of the number of hashes we can compute in parallel
     virtual unsigned num_log_track(void) = 0;
 
-    // Pointers into the addr structure that we use; SHA-256
+    // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
     unsigned offset_layer, offset_tree, offset_type;
     unsigned offset_kp_addr1, offset_kp_addr2;
@@ -422,6 +510,7 @@ protected:
     /// Constructor that initializes the key object to the 'we have no
     /// public or private key' state
     key(void);
+
 public:
     //
     // And the public API (the entire point of this)
@@ -434,13 +523,13 @@ public:
     success_flag generate_key_pair(const random& rand = rdrand_fill);
 
     /// Import a public key; the public key is assumed to be in the
-    /// standard Sphincs+ format.  Since we're not importing with the
+    /// standard SLH-DSA format.  Since we're not importing with the
     /// private key, we won't be able to sign
     /// @param[in] public_key Pointer to the public key
     virtual void set_public_key(const unsigned char *public_key);
     
     /// Import a private key; the private key is assumed to be in the
-    /// standard Sphincs+ format.
+    /// standard SLH-DSA format.
     /// @param[in] private_key Pointer to the private key
     virtual void set_private_key(const unsigned char *private_key);
 
@@ -466,6 +555,8 @@ public:
     ///            signature, nothing will be written, and this will fail
     /// @param[in] message The message to sign
     /// @param[in] len_message The length of the message to sign
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
     /// @param[in] rand The object that returns the randomness used to generate
     ///            this signature.  If 0, this will fall back to determanistic
     ///            signature generation.  If omitted, this will fall back to
@@ -474,12 +565,39 @@ public:
     success_flag sign(
             unsigned char *signature, size_t len_signature_buffer,
             const unsigned char *message, size_t len_message,
+	    const void *context = 0, size_t len_context = 0,
+            const random& rand = rdrand_fill);
+
+    /// Generate a signature for a prehashed message using the private key
+    /// installed in this object.  This is, we assume that the message has
+    /// already been hashed
+    /// @param[out] signature Where to write the signature
+    /// @param[in] len_signature_buffer The length of the signature buffer;
+    ///            If the buffer is not long enough to receive the entire
+    ///            signature, nothing will be written, and this will fail
+    /// @param[in] message_hash The message hash to sign
+    /// @param[in] len_message_hash The length of the hash to sign
+    /// @param[in] hash_type The hash that was used to prehash the message
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
+    /// @param[in] rand The object that returns the randomness used to generate
+    ///            this signature.  If 0, this will fall back to determanistic
+    ///            signature generation.  If omitted, this will fall back to
+    ///            a default randomness generation function
+    /// \return success (we generated the signature) or failure
+    success_flag sign(
+            unsigned char *signature, size_t len_signature_buffer,
+            const unsigned char *message, size_t len_message,
+	    const hash_type& hash,
+	    const void *context = 0, size_t len_context = 0,
             const random& rand = rdrand_fill);
  
     /// Generate a signature for a message using the private key installed in
     /// this object.  On failure, this throws an exception.
     /// @param[in] message The message to sign
     /// @param[in] len_message The length of the message to sign
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
     /// @param[in] rand The object that returns the randomness used to generate
     ///            this signature.  If 0, this will fall back to determanistic
     ///            signature generation.  If omitted, this will fall back to
@@ -487,6 +605,26 @@ public:
     /// \return The unique_ptr containing the signature
     std::unique_ptr<unsigned char[]> sign(
             const unsigned char *message, size_t len_message,
+	    const void *context = 0, size_t len_context = 0,
+            const random& rand = rdrand_fill);
+ 
+    /// Generate a signature for a prehashed message using the private key
+    /// installed in this object.  This is, we assume that the message has
+    /// already been hashed. On failure, this throws an exception.
+    /// @param[in] message The message to sign
+    /// @param[in] len_message The length of the message to sign
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
+    /// @param[in] hash_type The hash that was used to prehash the message
+    /// @param[in] rand The object that returns the randomness used to generate
+    ///            this signature.  If 0, this will fall back to determanistic
+    ///            signature generation.  If omitted, this will fall back to
+    ///            a default randomness generation function
+    /// \return The unique_ptr containing the signature
+    std::unique_ptr<unsigned char[]> sign(
+            const unsigned char *message, size_t len_message,
+	    const hash_type& hash,
+	    const void *context = 0, size_t len_context = 0,
             const random& rand = rdrand_fill);
 
     /// Verify a signature that is alleged to be for the message, using the
@@ -495,11 +633,31 @@ public:
     /// @param[in] len_signature The length of the signature
     /// @param[in] message THe message we're checking
     /// @param[in] len_message The length of the message
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
     /// \return Success (the signature checked out) or failure (it didn't or
     /// this key object doesn't have a public key to check)
     success_flag verify(
             const unsigned char *signature, size_t len_signature,
-            const void *message, size_t len_message);
+            const void *message, size_t len_message,
+	    const void *context = 0, size_t len_context = 0);
+
+    /// Verify a signature that is alleged to be for the prehashed message,
+    /// using the public key installed in this object.
+    /// @param[in] signature The signature we're checking
+    /// @param[in] len_signature The length of the signature
+    /// @param[in] message THe message we're checking
+    /// @param[in] len_message The length of the message
+    /// @param[in] hash_type The hash that was used to prehash the message
+    /// @param[in] context The optional signature context to sign
+    /// @param[in] len_context The length of the signature context
+    /// \return Success (the signature checked out) or failure (it didn't or
+    /// this key object doesn't have a public key to check)
+    success_flag verify(
+            const unsigned char *signature, size_t len_signature,
+            const void *message, size_t len_message,
+	    const hash_type& hash,
+	    const void *context = 0, size_t len_context = 0);
 
     /// Get the length of a signature with this parameter set
     /// \return The length of a signature
@@ -528,12 +686,13 @@ public:
     ///             thread
     void set_num_thread(unsigned n) { num_thread = n; }
 
+    /// Destructor - just zeroizes things
     virtual ~key(void);
 };
 
 ///
-/// This abstract class is for SHA256-based parameter sets
-class sha256_hash : public key {
+/// This abstract class is for SHA2-based parameter sets
+class key_sha2 : public key {
 protected:
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
@@ -546,21 +705,24 @@ protected:
               const addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
               const unsigned char *msg, size_t len_msg );
     virtual void h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
+              const void *msg, size_t len_msg );
 
-    // These are implementations of the prf_msg/h_msg functions
-    // that use SHA512 internally.  It is used by the SHA256-L3, L5
-    // parameter sets, in this class so that child L5 classes
-    // can redirect the virtual functions to these
-    void prf_msg_512( unsigned char *result,
-              const unsigned char *opt,
-              const unsigned char *msg, size_t len_msg );
-    void h_msg_512( unsigned char *result, size_t len_result,
-              const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
+    // The implementations of the thash function
+    virtual void thash(unsigned char *out,
+             const unsigned char *in,
+             unsigned int inblocks, addr_t addr);
+    virtual void thash_xn(unsigned char **out,
+             unsigned char **in, 
+             unsigned int inblocks, addr_t* addrxn);
 
     /// The prehashed public seed
     uint32_t state_seeded[8];
@@ -568,14 +730,14 @@ protected:
     virtual unsigned num_track(void);
     virtual unsigned num_log_track(void);
 
-    sha256_hash(void);
+    key_sha2(void);
 public:
     virtual void set_public_key(const unsigned char *public_key);
     virtual void set_private_key(const unsigned char *private_key);
 };
 
-/// This abstract class is for SHAKE256-based parameter sets
-class shake256_hash : public key {
+/// This abstract class is for SHAKE-based parameter sets
+class key_shake : public key {
 protected:
     SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The prehashed public seed
 
@@ -586,62 +748,29 @@ protected:
               const addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
               const unsigned char *msg, size_t len_msg );
     virtual void h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
-public:
-    virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
-};
-
-/// This abstract class is for Haraka-based parameter sets
-class haraka_hash : public key {
-protected:
-    __m128i pub_seed_expanded[40]; //<! Expanded Haraka public key
-
-    virtual unsigned num_track(void);
-    virtual unsigned num_log_track(void);
-
-    virtual void prf_addr_xn(unsigned char **out,
-              const addr_t* addrxn);
-    virtual void prf_msg( unsigned char *result,
-              const unsigned char *opt,
-              const unsigned char *msg, size_t len_msg );
-    virtual void h_msg( unsigned char *result, size_t len_result,
-              const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
-        // This will need to be defined by the subclass
-    virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addrxn) = 0;
-public:
-    virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
-};
-
-/// This abstract class is for SHA256-simple-based parameter sets
-class key_sha256_simple : public sha256_hash {
-protected:
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addrxn);
-};
-
-
-/// This abstract class is for SHA256-robust-based parameter sets
-class key_sha256_robust : public sha256_hash {
-protected:
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
+              const void *msg, size_t len_msg );
     virtual void thash(unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t  addr);
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
+public:
+    virtual void set_public_key(const unsigned char *public_key);
+    virtual void set_private_key(const unsigned char *private_key);
 };
-// And the L3, L5 versions of the SHA256 parameter sets
-class key_sha256_L35_simple : public key_sha256_simple {
+
+// And the L3, L5 versions of the SHA2 parameter sets
+class key_sha2_L35 : public key_sha2 {
     /// The prehashed public seed for SHA-512
     uint64_t state_seeded_512[8];
 
@@ -661,304 +790,93 @@ class key_sha256_L35_simple : public key_sha256_simple {
              unsigned int inblocks, addr_t* addrxn);
     virtual void prf_msg( unsigned char *result,
               const unsigned char *opt,
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
               const unsigned char *msg, size_t len_msg );
     virtual void h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
-};
-class key_sha256_L35_robust : public key_sha256_robust {
-    /// The prehashed public seed for SHA-512
-    uint64_t state_seeded_512[8];
-
-    /// This precomputes the SHA-512 intermediate state of the public seed
-    /// (so we don't have to recompute it everytime we need it).
-    /// This is called whenever we update the public key (which includes
-    /// updates of the private key)
-    /// @param[in] public_seed The new public seed
-    virtual void initialize_public_seed(const unsigned char *public_seed);
-
-    virtual void f_xn(unsigned char **out, unsigned char **in, addr_t* addr);
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addrxn);
-    virtual void prf_msg( unsigned char *result,
-              const unsigned char *opt,
-              const unsigned char *msg, size_t len_msg );
-    virtual void h_msg( unsigned char *result, size_t len_result,
-              const unsigned char *r,
-              const unsigned char *msg, size_t len_msg );
-};
-
-/// This abstract class is for SHAKE256-simple-based parameter sets
-class key_shake256_simple : public shake256_hash {
-protected:
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t  addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addrxn);
-};
-
-/// This abstract class is for SHAKE256-robust-based parameter sets
-class key_shake256_robust : public shake256_hash {
-protected:
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addrxn);
-};
-
-/// This abstract class is for Haraka-simple-based parameter sets
-class key_haraka_simple : public haraka_hash {
-protected:
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addr);
-    virtual void f_xn(unsigned char **out, unsigned char **in,
-             addr_t* addrxn);
-};
-
-/// This abstract class is for Haraka-robust-based parameter sets
-class key_haraka_robust : public haraka_hash {
-protected:
-    virtual void thash(unsigned char *out,
-             const unsigned char *in,
-             unsigned int inblocks, addr_t addr);
-    virtual void thash_xn(unsigned char **out,
-             unsigned char **in, 
-             unsigned int inblocks, addr_t* addrxn);
-    virtual void f_xn(unsigned char **out, unsigned char **in,
-             addr_t* addrxn);
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
+              const void *msg, size_t len_msg );
 };
 
 //
 // And now the individual parameter set classes
 
-/// The class for keys with the SHA256 simple 128F parameter set
-class key_sha256_128f_simple : public key_sha256_simple {
+/// The class for keys with the SHA2 128F parameter set
+class key_sha2_128f : public key_sha2 {
 public:
-    key_sha256_128f_simple(void) { set_128f(); }
+    key_sha2_128f(void) { set_128f(); }
 };
 
-/// The class for keys with the SHA256 robust 128F parameter set
-class key_sha256_128f_robust : public key_sha256_robust {
+/// The class for keys with the SHA2 128S parameter set
+class key_sha2_128s : public key_sha2 {
 public:
-    key_sha256_128f_robust(void) { set_128f(); }
+    key_sha2_128s(void) { set_128s(); }
 };
 
-/// The class for keys with the SHA256 simple 128S parameter set
-class key_sha256_128s_simple : public key_sha256_simple {
+/// The class for keys with the SHA2 192F parameter set
+class key_sha2_192f : public key_sha2_L35 {
 public:
-    key_sha256_128s_simple(void) { set_128s(); }
+    key_sha2_192f(void) { set_192f(); }
 };
 
-/// The class for keys with the SHA256 robust 128S parameter set
-class key_sha256_128s_robust : public key_sha256_robust {
+/// The class for keys with the SHA2 192S parameter set
+class key_sha2_192s : public key_sha2_L35 {
 public:
-    key_sha256_128s_robust(void) { set_128s(); }
+    key_sha2_192s(void) { set_192s(); }
 };
 
-/// The class for keys with the SHA256 simple 192F parameter set
-class key_sha256_192f_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHA256 256F parameter set
+class key_sha2_256f : public key_sha2_L35 {
 public:
-    key_sha256_192f_simple(void) { set_192f(); }
+    key_sha2_256f(void) { set_256f(); }
 };
 
-/// The class for keys with the SHA256 robust 192F parameter set
-class key_sha256_192f_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHA256 256S parameter set
+class key_sha2_256s : public key_sha2_L35 {
 public:
-    key_sha256_192f_robust(void) { set_192f(); }
+    key_sha2_256s(void) { set_256s(); }
 };
 
-/// The class for keys with the SHA256 simple 192S parameter set
-class key_sha256_192s_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHAKE 128F parameter set
+class key_shake_128f : public key_shake {
 public:
-    key_sha256_192s_simple(void) { set_192s(); }
+    key_shake_128f(void) { set_128f(); }
 };
 
-/// The class for keys with the SHA256 robust 192S parameter set
-class key_sha256_192s_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHAKE 128S parameter set
+class key_shake_128s : public key_shake {
 public:
-    key_sha256_192s_robust(void) { set_192s(); }
+    key_shake_128s(void) { set_128s(); }
 };
 
-/// The class for keys with the SHA256 simple 256F parameter set
-class key_sha256_256f_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHAKE 192F parameter set
+class key_shake_192f : public key_shake {
 public:
-    key_sha256_256f_simple(void) { set_256f(); }
+    key_shake_192f(void) { set_192f(); }
 };
 
-/// The class for keys with the SHA256 robust 256F parameter set
-class key_sha256_256f_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHAKE 192S parameter set
+class key_shake_192s : public key_shake {
 public:
-    key_sha256_256f_robust(void) { set_256f(); }
+    key_shake_192s(void) { set_192s(); }
 };
 
-/// The class for keys with the SHA256 simple 256S parameter set
-class key_sha256_256s_simple : public key_sha256_L35_simple {
+/// The class for keys with the SHAKE 256F parameter set
+class key_shake_256f : public key_shake {
 public:
-    key_sha256_256s_simple(void) { set_256s(); }
+    key_shake_256f(void) { set_256f(); }
 };
 
-/// The class for keys with the SHA256 robust 256S parameter set
-class key_sha256_256s_robust : public key_sha256_L35_robust {
+/// The class for keys with the SHAKE 256S parameter set
+class key_shake_256s : public key_shake {
 public:
-    key_sha256_256s_robust(void) { set_256s(); }
+    key_shake_256s(void) { set_256s(); }
 };
 
-/// The class for keys with the SHAKE256 simple 128F parameter set
-class key_shake256_128f_simple : public key_shake256_simple {
-public:
-    key_shake256_128f_simple(void) { set_128f(); }
-};
+}  /* namespace slh_dsa */
 
-/// The class for keys with the SHAKE256 robust 128F parameter set
-class key_shake256_128f_robust : public key_shake256_robust {
-public:
-    key_shake256_128f_robust(void) { set_128f(); }
-};
-
-/// The class for keys with the SHAKE256 simple 128S parameter set
-class key_shake256_128s_simple : public key_shake256_simple {
-public:
-    key_shake256_128s_simple(void) { set_128s(); }
-};
-
-/// The class for keys with the SHAKE256 robust 128S parameter set
-class key_shake256_128s_robust : public key_shake256_robust {
-public:
-    key_shake256_128s_robust(void) { set_128s(); }
-};
-
-/// The class for keys with the SHAKE256 simple 192F parameter set
-class key_shake256_192f_simple : public key_shake256_simple {
-public:
-    key_shake256_192f_simple(void) { set_192f(); }
-};
-
-/// The class for keys with the SHAKE256 robust 192F parameter set
-class key_shake256_192f_robust : public key_shake256_robust {
-public:
-    key_shake256_192f_robust(void) { set_192f(); }
-};
-
-/// The class for keys with the SHAKE256 simple 192S parameter set
-class key_shake256_192s_simple : public key_shake256_simple {
-public:
-    key_shake256_192s_simple(void) { set_192s(); }
-};
-
-/// The class for keys with the SHAKE256 robust 192S parameter set
-class key_shake256_192s_robust : public key_shake256_robust {
-public:
-    key_shake256_192s_robust(void) { set_192s(); }
-};
-
-/// The class for keys with the SHAKE256 simple 256F parameter set
-class key_shake256_256f_simple : public key_shake256_simple {
-public:
-    key_shake256_256f_simple(void) { set_256f(); }
-};
-
-/// The class for keys with the SHAKE256 robust 256F parameter set
-class key_shake256_256f_robust : public key_shake256_robust {
-public:
-    key_shake256_256f_robust(void) { set_256f(); }
-};
-
-/// The class for keys with the SHAKE256 simple 256S parameter set
-class key_shake256_256s_simple : public key_shake256_simple {
-public:
-    key_shake256_256s_simple(void) { set_256s(); }
-};
-
-/// The class for keys with the SHAKE256 robust 256S parameter set
-class key_shake256_256s_robust : public key_shake256_robust {
-public:
-    key_shake256_256s_robust(void) { set_256s(); }
-};
-
-/// The class for keys with the HARAKA simple 128F parameter set
-class key_haraka_128f_simple : public key_haraka_simple {
-public:
-    key_haraka_128f_simple(void) { set_128f(); }
-};
-
-/// The class for keys with the HARAKA robust 128F parameter set
-class key_haraka_128f_robust : public key_haraka_robust {
-public:
-    key_haraka_128f_robust(void) { set_128f(); }
-};
-
-/// The class for keys with the HARAKA simple 128S parameter set
-class key_haraka_128s_simple : public key_haraka_simple {
-public:
-    key_haraka_128s_simple(void) { set_128s(); }
-};
-
-/// The class for keys with the HARAKA robust 128S parameter set
-class key_haraka_128s_robust : public key_haraka_robust {
-public:
-    key_haraka_128s_robust(void) { set_128s(); }
-};
-
-/// The class for keys with the HARAKA simple 192F parameter set
-class key_haraka_192f_simple : public key_haraka_simple {
-public:
-    key_haraka_192f_simple(void) { set_192f(); }
-};
-
-/// The class for keys with the HARAKA robust 192F parameter set
-class key_haraka_192f_robust : public key_haraka_robust {
-public:
-    key_haraka_192f_robust(void) { set_192f(); }
-};
-
-/// The class for keys with the HARAKA simple 192S parameter set
-class key_haraka_192s_simple : public key_haraka_simple {
-public:
-    key_haraka_192s_simple(void) { set_192s(); }
-};
-
-/// The class for keys with the HARAKA robust 192S parameter set
-class key_haraka_192s_robust : public key_haraka_robust {
-public:
-    key_haraka_192s_robust(void) { set_192s(); }
-};
-
-/// The class for keys with the HARAKA simple 256F parameter set
-class key_haraka_256f_simple : public key_haraka_simple {
-public:
-    key_haraka_256f_simple(void) { set_256f(); }
-};
-
-/// The class for keys with the HARAKA robust 256F parameter set
-class key_haraka_256f_robust : public key_haraka_robust {
-public:
-    key_haraka_256f_robust(void) { set_256f(); }
-};
-
-/// The class for keys with the HARAKA simple 256S parameter set
-class key_haraka_256s_simple : public key_haraka_simple {
-public:
-    key_haraka_256s_simple(void) { set_256s(); }
-};
-
-/// The class for keys with the HARAKA robust 256S parameter set
-class key_haraka_256s_robust : public key_haraka_robust {
-public:
-    key_haraka_256s_robust(void) { set_256s(); }
-};
-
-}  /* namespace sphincs_plus */
-
-#endif /* SPHINCSPLUS_API_H_ */
+#endif /* SLH_DSA_API_H_ */

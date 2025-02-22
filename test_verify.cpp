@@ -19,14 +19,14 @@ public:
         prev_percentage = -1;
     }
     void set_iter(unsigned it) { iter = it; }
-    bool run( sphincs_plus::key& k, sphincs_plus::key& v, const char *name, bool always );
+    bool run( slh_dsa::key& k, slh_dsa::key& v, const char *name, bool always );
 };
 
 //
 // The first key is what we use to generate the signature
 // The second key is what we use to verify the signature; it is not given a copy
 // of the private key
-bool verify_test::run( sphincs_plus::key& k, sphincs_plus::key& v,
+bool verify_test::run( slh_dsa::key& k, slh_dsa::key& v,
                        const char* parameter_set_name, bool always ) {
         // If we're running in fast mode, skip any parameter set that is not
         // marked as always
@@ -128,7 +128,7 @@ bool verify_test::run( sphincs_plus::key& k, sphincs_plus::key& v,
 
 #define CONCAT( A, B ) A##B
 #define RUN_TEST(PARM_SET, always) {                                \
-    CONCAT( sphincs_plus::key_, PARM_SET) k, k2;                    \
+    CONCAT( slh_dsa::key_, PARM_SET) k, k2;                    \
     if (!v.run( k, k2, #PARM_SET, always )) {                       \
         return false;                                               \
     }                                                               \
@@ -147,46 +147,22 @@ bool test_verify(bool fast_flag, enum noise_level level) {
          */
 
         // L1 parameter sets
-        RUN_TEST( sha256_128s_simple, true );
-        RUN_TEST( sha256_128f_simple, false );
-        RUN_TEST( sha256_128s_robust, true );
-        RUN_TEST( sha256_128f_robust, false );
-        RUN_TEST( shake256_128s_simple, true ); 
-        RUN_TEST( shake256_128f_simple, false );
-        RUN_TEST( shake256_128s_robust, false );
-        RUN_TEST( shake256_128f_robust, false );
-        RUN_TEST( haraka_128s_simple, false );
-        RUN_TEST( haraka_128f_simple, true );
-        RUN_TEST( haraka_128s_robust, true );
-        RUN_TEST( haraka_128f_robust, false );
+        RUN_TEST( sha2_128s, true );
+        RUN_TEST( sha2_128f, false );
+        RUN_TEST( shake_128s, true ); 
+        RUN_TEST( shake_128f, false );
 
         // L3 parameter sets
-        RUN_TEST( sha256_192s_simple, true );
-        RUN_TEST( sha256_192f_simple, false );
-        RUN_TEST( sha256_192s_robust, false );
-        RUN_TEST( sha256_192f_robust, false );
-        RUN_TEST( shake256_192s_simple, false );
-        RUN_TEST( shake256_192f_simple, false );
-        RUN_TEST( shake256_192s_robust, false );
-        RUN_TEST( shake256_192f_robust, false );
-        RUN_TEST( haraka_192s_simple, true );
-        RUN_TEST( haraka_192f_simple, false );
-        RUN_TEST( haraka_192s_robust, false );
-        RUN_TEST( haraka_192f_robust, false );
+        RUN_TEST( sha2_192s, true );
+        RUN_TEST( sha2_192f, false );
+        RUN_TEST( shake_192s, false );
+        RUN_TEST( shake_192f, false );
 
         // L5 parameter sets
-        RUN_TEST( sha256_256s_simple, true );
-        RUN_TEST( sha256_256f_simple, false );
-        RUN_TEST( sha256_256s_robust, false );
-        RUN_TEST( sha256_256f_robust, false );
-        RUN_TEST( shake256_256s_simple, false );
-        RUN_TEST( shake256_256f_simple, false );
-        RUN_TEST( shake256_256s_robust, false );
-        RUN_TEST( shake256_256f_robust, false );
-        RUN_TEST( haraka_256s_simple, true );
-        RUN_TEST( haraka_256f_simple, false );
-        RUN_TEST( haraka_256s_robust, false );
-        RUN_TEST( haraka_256f_robust, false );
+        RUN_TEST( sha2_256s, true );
+        RUN_TEST( sha2_256f, false );
+        RUN_TEST( shake_256s, false );
+        RUN_TEST( shake_256f, false );
     }
 
     return true; 

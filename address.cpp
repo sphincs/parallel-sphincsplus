@@ -8,7 +8,7 @@
 /// \brief This contains the accessor functions for the addr_t fields
 // at least, the ones that were complicated enough not to inline
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 //
 // Specify which Merkle tree within the level (the "tree address") we're working on
@@ -54,4 +54,4 @@ void key::set_tree_index(addr_t addr, uint32_t tree_index)
     u32_to_bytes(&addr[offset_tree_index], tree_index );
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

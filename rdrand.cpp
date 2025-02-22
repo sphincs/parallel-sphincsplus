@@ -7,7 +7,7 @@
 /// \file rdrand.cpp
 /// \brief This contains the routine to get randomness using rdrand_fill
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 ///
 /// Call rdrand to fill the buffer with randomness
@@ -40,4 +40,4 @@ success_flag rdrand_fill( void* target, size_t bytes_to_fill) {
     return success;
 }
 
-} /* namespace sphincs_plus */
+} /* namespace shl_dsa */

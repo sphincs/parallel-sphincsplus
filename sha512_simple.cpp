@@ -1,5 +1,5 @@
 /*
- * This file has support for the low level SHA-2-simple routines for L3, L5
+ * This file has support for the low level SHA-2 hash routines for L3, L5
  */
 #include <string.h>
 #include "api.h"
@@ -7,12 +7,12 @@
 #include "sha512avx.h"
 #include "sha512.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /**
- * The simple version of thash
+ * The L3, L5 version of thash
  */
-void key_sha256_L35_simple::thash( unsigned char *out,
+void key_sha2_L35::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     // thash is never called with inblocks==1, hence we don't need to
@@ -37,7 +37,7 @@ void key_sha256_L35_simple::thash( unsigned char *out,
  * 8-way parallel version of thash; takes 8x as much input and output
  * Note that, for inblocks==1, the alternative f_xn function is used
  */
-void key_sha256_L35_simple::thash_xn(unsigned char **out,
+void key_sha2_L35::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx8) {
@@ -82,13 +82,13 @@ void key_sha256_L35_simple::thash_xn(unsigned char **out,
 //
 // For the single input version of T, fall back to the base version, which
 // uses SHA-256
-void key_sha256_L35_simple::f_xn(unsigned char **out, unsigned char **in,
+void key_sha2_L35::f_xn(unsigned char **out, unsigned char **in,
                                  addr_t* addrxn) {
-    key_sha256_simple::thash_xn(out, in, 1, addrxn);
+    key_sha2::thash_xn(out, in, 1, addrxn);
 }
 
 // This precomputes the SHA-512 hash state after processing the public seed
-void key_sha256_L35_simple::initialize_public_seed(const unsigned char *pub_seed) {
+void key_sha2_L35::initialize_public_seed(const unsigned char *pub_seed) {
     uint8_t block[sha512_block_size];
     size_t i;
     size_t n = len_hash();
@@ -106,7 +106,7 @@ void key_sha256_L35_simple::initialize_public_seed(const unsigned char *pub_seed
     ctx.export_intermediate( state_seeded_512 );
 
     // Also initialize the SHA-256 initial hash (which we also use)
-    sha256_hash::initialize_public_seed(pub_seed);
+    key_sha2::initialize_public_seed(pub_seed);
 }
 
-} /* sphincs_plus */
+} /* slh_dsa */

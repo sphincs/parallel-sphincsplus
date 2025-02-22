@@ -8,7 +8,7 @@
 /// \file sha512.h
 /// \brief The definitions of the low level SHA512 classes
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 const unsigned sha512_block_size = 128; //<! SHA-512 processes data in
                                     //<! 128 byte chunks
@@ -55,11 +55,11 @@ public:
 
     /// Erase the hash state.  Used if we've hashed sensitive data and
     /// we need to free the hash object
-    void zeroize(void) { sphincs_plus::zeroize( this, sizeof *this ); }
+    void zeroize(void) { slh_dsa::zeroize( this, sizeof *this ); }
 
     static const unsigned hash_size = sha512_output_size;
 };
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif /* SHA512_H_ */

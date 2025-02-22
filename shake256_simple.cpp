@@ -7,12 +7,12 @@
 #include "fips202.h"
 #include "fips202x4.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /**
- * The simple version of thash
+ * The SHAKE version of thash
  */
-void key_shake256_simple::thash( unsigned char *out,
+void key_shake::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     unsigned n = len_hash();
@@ -28,7 +28,7 @@ void key_shake256_simple::thash( unsigned char *out,
 /**
  * 4-way parallel version of thash; takes 4x as much input and output
  */
-void key_shake256_simple::thash_xn(unsigned char **out,
+void key_shake::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx4)
@@ -48,4 +48,4 @@ void key_shake256_simple::thash_xn(unsigned char **out,
     shake256_4x_inc_squeeze(out[0], out[1], out[2], out[3], n, &ctx);
 }
 
-} /* sphincs_plus */
+} /* slh_dsa */

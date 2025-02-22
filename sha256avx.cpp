@@ -4,7 +4,7 @@
 
 #include "sha256avx.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 // Transpose 8 vectors containing 32-bit values
 static void transpose(u256 s[8]) {
@@ -314,4 +314,4 @@ void sha256_transform8x(sha256ctx8x *ctx, const unsigned char *data) {
     ctx->s[7] = ADD32(s[7], ctx->s[7]);
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

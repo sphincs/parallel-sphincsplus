@@ -4,7 +4,7 @@
 
 #include "sha512avx.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 typedef uint64_t u64;
 typedef __m256i u256;
@@ -348,4 +348,4 @@ static void sha512_transform4x(sha512ctx4x *ctx, const unsigned char *data) {
     ctx->s[7] = ADD64(s7, ctx->s[7]);
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

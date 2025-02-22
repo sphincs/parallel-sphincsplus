@@ -8,25 +8,15 @@
 #include "sha512.h"
 #include "mgf1.h"
 
-namespace sphincs_plus {
-
-// For the SHA256-L3, L5 parameter sets, redirect the PRF_msg to the version
-// that uses SHA-512
-void key_sha256_L35_simple::prf_msg( unsigned char *result,
-		              const unsigned char *opt,
-			      const unsigned char *msg, size_t len_msg ) {
-    prf_msg_512(result, opt, msg, len_msg);
-}
-void key_sha256_L35_robust::prf_msg( unsigned char *result,
-		              const unsigned char *opt,
-			      const unsigned char *msg, size_t len_msg ) {
-    prf_msg_512(result, opt, msg, len_msg);
-}
+namespace slh_dsa {
 
 // prf_msg is defined as HMAC( prf, opt_rand || msg )
-void sha256_hash::prf_msg_512( unsigned char *result,
-              const unsigned char *opt_rand,
-              const unsigned char *msg, size_t len_msg ) {
+void key_sha2_L35::prf_msg( unsigned char *result,
+		              const unsigned char *opt_rand,
+                              unsigned char domain_separator_byte,
+                              const void *context, size_t len_context,
+                              const void *oid, size_t len_oid,
+			      const unsigned char *msg, size_t len_msg ) {
     SHA512_CTX ctx;
     unsigned char block[sha512_block_size];
     unsigned char hash_output[sha512_output_size];
@@ -41,6 +31,11 @@ void sha256_hash::prf_msg_512( unsigned char *result,
     memset( &block[n], 0x36, sha512_block_size-n );
     ctx.update( block, sha512_block_size );
     ctx.update( opt_rand, n );
+    ctx.update( &domain_separator_byte, 1 );
+    unsigned char c = len_context;
+    ctx.update( &c, 1 );
+    if (context) ctx.update( context, len_context );
+    if (oid) ctx.update( oid, len_oid );
     ctx.update( msg, len_msg );
 
     ctx.final(hash_output);
@@ -61,24 +56,14 @@ void sha256_hash::prf_msg_512( unsigned char *result,
     ctx.zeroize();
 }
 
-// For the SHA256-L3, L5 parameter sets, redirect the h_msg to the version
-// that uses SHA-512
-void key_sha256_L35_simple::h_msg( unsigned char *result, size_t len_result,
-		              const unsigned char *r,
-			      const unsigned char *msg, size_t len_msg ) {
-    h_msg_512(result, len_result, r, msg, len_msg);
-}
-void key_sha256_L35_robust::h_msg( unsigned char *result, size_t len_result,
-		              const unsigned char *r,
-			      const unsigned char *msg, size_t len_msg ) {
-    h_msg_512(result, len_result, r, msg, len_msg);
-}
-
 // Here, len_result is not the size of the buffer (which it is in most
 // similar contexts); instead, it is the number of output bytes desired
-void sha256_hash::h_msg_512( unsigned char *result, size_t len_result,
-              const unsigned char *r,
-              const unsigned char *msg, size_t len_msg ) {
+void key_sha2_L35::h_msg( unsigned char *result, size_t len_result,
+		              const unsigned char *r,
+                              unsigned char domain_separator_byte,
+                              const void *context, size_t len_context,
+                              const void *oid, size_t len_oid,
+			      const void *msg, size_t len_msg ) {
     unsigned char msg_hash[ sha512_output_size  + 2*max_len_hash ];
     size_t n = len_hash();
 
@@ -90,6 +75,11 @@ void sha256_hash::h_msg_512( unsigned char *result, size_t len_result,
     ctx.update(r, n);
     ctx.update(pk_seed, n);
     ctx.update(pk_root, n);
+    ctx.update( &domain_separator_byte, 1 );
+    unsigned char c = len_context;
+    ctx.update( &c, 1 );
+    if (context) ctx.update( context, len_context );
+    if (oid) ctx.update( oid, len_oid );
     ctx.update(msg, len_msg);
     ctx.final(msg_hash + 2*n);
 
@@ -100,4 +90,4 @@ void sha256_hash::h_msg_512( unsigned char *result, size_t len_result,
     stream.output( result, len_result );
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

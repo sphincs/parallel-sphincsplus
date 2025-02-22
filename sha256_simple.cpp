@@ -1,5 +1,5 @@
 /*
- * This file has support for the low level SHA-256-simple routines
+ * This file has support for the low level SHA-256 routines
  */
 #include <string.h>
 #include "api.h"
@@ -7,12 +7,12 @@
 #include "sha256avx.h"
 #include "sha256.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /**
- * The simple version of thash
+ * The SHA-2 version of thash
  */
-void key_sha256_simple::thash( unsigned char *out,
+void key_sha2::thash( unsigned char *out,
              const unsigned char *in,
              unsigned int inblocks, addr_t addr) {
     unsigned char outbuf[sha256_output_size];
@@ -33,7 +33,7 @@ void key_sha256_simple::thash( unsigned char *out,
 /**
  * 8-way parallel version of thash; takes 8x as much input and output
  */
-void key_sha256_simple::thash_xn(unsigned char **out,
+void key_sha2::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
              addr_t* addrx8)
@@ -86,4 +86,4 @@ void key_sha256_simple::thash_xn(unsigned char **out,
     memcpy(out[7], outbufx8[7], n);
 }
 
-} /* sphincs_plus */
+} /* slh_dsa */

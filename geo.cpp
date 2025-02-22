@@ -4,10 +4,10 @@
 #include "internal.h"
 
 /// \file geo.cpp
-/// \brief This contains hash the message into the fields used by Sphincs+,
+/// \brief This contains hash the message into the fields used by SLH-DSA,
 /// as well as to initialize the fixed fields in the geo structure
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /// This lays out where things are within a signature
 /// That is, the offsets where the various FORS, WOTS+ and Merkle tree
@@ -53,23 +53,33 @@ public:
         unsigned r = 0;
         unsigned count_bits = 0;
         while (bits >= bits_in_byte) {
-            r |= *p++ << count_bits;
+	    // The region we're extracting extends to the end of the byte
+	    // we're scanning; extract what's remaining, and add it to
+	    // the result (after shifting it into the correct position)
+            r |= *p++ << (bits - bits_in_byte);
             count_bits += bits_in_byte;
             bits -= bits_in_byte;
             bits_in_byte = 8;
         }
         if (bits > 0) {
-            unsigned mask = (1 << bits) - 1;
-            r += (*p & mask) << count_bits;
-            *p >>= bits;
+	    // The region we're extracting ends in the middle of this byte
+	    // Set the mask to cover that reguin; add those to the result
+	    // (after shifting it to the correct position)
+            unsigned mask = ((1 << bits) - 1) << (bits_in_byte - bits);
+            r += (*p & mask) >> (bits_in_byte - bits);
+
             bits_in_byte -= bits;
+
+	    // And remove those bits from teh byte (so it doesn't interfere
+	    // with th enext field we extract)
+	    *p &= ~mask;
         }
         return r;
     }
     /// Extract the next n bits from the buffer as an integer.  Note that
     /// this actually reads the next ceil(bits/8) bytes, and ignores the
     /// msbits if bits isn't a multiple of 8.  This is behavior distinct
-    /// from the extra_bits function - for whatever reason, Sphincs+ uses
+    /// from the extra_bits function - for whatever reason, SLH-DSA uses
     /// this behavior to read the Merkle tree/Hypertree locations from
     /// the bitstream
     /// @param[in] bits Number of bits to extract
@@ -89,8 +99,11 @@ public:
 ///
 /// This converts a message (and randomness) into the FORS/Merkle indices
 void key::hash_message(struct signature_geometry& geo,
-           const unsigned char *r, 
-           const unsigned char *message, size_t len_message ) {
+           const unsigned char *r,
+           unsigned char domain_separator_byte,
+           const void *context, size_t len_context,
+           const void *oid, size_t len_oid,
+           const void *message, size_t len_message ) {
 
     unsigned char msg_hash[ max_len_h_msg ];
 
@@ -100,14 +113,13 @@ void key::hash_message(struct signature_geometry& geo,
                                      //  Merkle tree
     len_h += (merkle_height() + 7)/8; // For the leaf of the bottom Merkle
 
-    h_msg( msg_hash, len_h, r, message, len_message );
+    h_msg( msg_hash, len_h, r, domain_separator_byte, context,
+	   len_context, oid, len_oid, message, len_message );
 
     /* Now, parse that output into the individual values */
     bit_extract bit( msg_hash, len_h );
 
     /* The first k*a bits are the digits of the FORS trees */
-    /* Note that the byte ordering is reversed; that's what the Sphincs+ */
-    /* reference code does */
     for (unsigned i=0; i<k(); i++) {
         geo.fors[i] = bit.extract_bits( t() );
     }
@@ -122,4 +134,4 @@ void key::hash_message(struct signature_geometry& geo,
     geo.idx_leaf = bit.extract_int( merkle_height() );
 }
 
-}  /* namespace sphincs_plus */
+}  /* namespace slh_dsa */

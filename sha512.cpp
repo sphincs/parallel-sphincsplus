@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include "sha512.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 static void put_bigendian( unsigned char *target, uint64_t value,
                            size_t bytes ) {
@@ -222,4 +222,4 @@ void SHA512_CTX::export_intermediate(sha512_state intermediate) {
     memcpy( intermediate, h, 8 * sizeof(uint64_t) );
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
