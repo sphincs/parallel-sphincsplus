@@ -15,7 +15,7 @@
 #include "sha256.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 const unsigned SHA256_FINALCOUNT_SIZE = 8;
 const unsigned NUM_ROUNDS = 64;
@@ -191,5 +191,5 @@ void SHA256_CTX::export_intermediate(sha256_state intermediate) {
     memcpy( intermediate, h, 8 * sizeof(uint32_t) );
 }
 
-}  /* namespace sphincs_plus */
+}  /* namespace slh_dsa */
 

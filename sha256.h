@@ -8,7 +8,7 @@
 /// \file sha256.h
 /// \brief The definitions of the low level SHA256 classes
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 typedef uint32_t sha256_state[8];   //<! The core SHA256 state
                                     //<! Used both internally in the SHA256
@@ -54,11 +54,11 @@ public:
 
     /// Erase the hash state.  Used if we've hashed sensitive data and
     /// we need to free the hash object
-    void zeroize(void) { sphincs_plus::zeroize( this, sizeof *this ); }
+    void zeroize(void) { slh_dsa::zeroize( this, sizeof *this ); }
 
     static const unsigned hash_size = sha256_output_size;
 };
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif /* SHA256_H_ */

@@ -1,7 +1,5 @@
 /*
  * This file has support for SHA-256-based parameter sets
- * This does those functions that are the same for both simple and
- * robust parameter sets
  */ 
 #include <string.h>
 #include "api.h"
@@ -10,10 +8,10 @@
 #include "sha256avx.h"
 #include "mgf1.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 // This precomputes the SHA-256 hash state after processing the public seed
-void sha256_hash::initialize_public_seed(const unsigned char *pub_seed) {
+void key_sha2::initialize_public_seed(const unsigned char *pub_seed) {
     uint8_t block[sha256_block_size];
     size_t i;
     size_t n = len_hash();
@@ -31,12 +29,12 @@ void sha256_hash::initialize_public_seed(const unsigned char *pub_seed) {
     ctx.export_intermediate( state_seeded );
 }
 
-void sha256_hash::set_public_key(const unsigned char *public_key) {
+void key_sha2::set_public_key(const unsigned char *public_key) {
     key::set_public_key(public_key);
     initialize_public_seed( get_public_seed() );
 }
 
-void sha256_hash::set_private_key(const unsigned char *private_key) {
+void key_sha2::set_private_key(const unsigned char *private_key) {
     key::set_private_key(private_key);
     initialize_public_seed( get_public_seed() );
 }
@@ -45,7 +43,7 @@ void sha256_hash::set_private_key(const unsigned char *private_key) {
  * 8-way parallel version of prf_addr; takes 8x as much input and output
  * This is SHA-256 specific
  */
-void sha256_hash::prf_addr_xn(unsigned char **out,
+void key_sha2::prf_addr_xn(unsigned char **out,
                 const addr_t* addrx8)
 {
     __m256i outbufx8[8][sha256_output_size / sizeof(__m256i)];
@@ -98,8 +96,11 @@ void sha256_hash::prf_addr_xn(unsigned char **out,
 }
 
 // prf_msg is defined as HMAC( prf, opt_rand || msg )
-void sha256_hash::prf_msg( unsigned char *result,
+void key_sha2::prf_msg( unsigned char *result,
               const unsigned char *opt_rand,
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
               const unsigned char *msg, size_t len_msg ) {
     SHA256_CTX ctx;
     unsigned char block[sha256_block_size];
@@ -115,6 +116,15 @@ void sha256_hash::prf_msg( unsigned char *result,
     memset( &block[n], 0x36, sha256_block_size-n );
     ctx.update( block, sha256_block_size );
     ctx.update( opt_rand, n );
+    ctx.update( &domain_separator_byte, 1 );
+    unsigned char c = len_context;
+    ctx.update( &c, 1 );
+    if (len_context > 0) {
+        ctx.update( context, len_context );
+    }
+    if (len_oid > 0) {
+        ctx.update( oid, len_oid );
+    }
     ctx.update( msg, len_msg );
 
     ctx.final(hash_output);
@@ -137,9 +147,12 @@ void sha256_hash::prf_msg( unsigned char *result,
 
 // Here, len_result is not the size of the buffer (which it is in most
 // similar contexts); instead, it is the number of output bytes desired
-void sha256_hash::h_msg( unsigned char *result, size_t len_result,
+void key_sha2::h_msg( unsigned char *result, size_t len_result,
               const unsigned char *r,
-              const unsigned char *msg, size_t len_msg ) {
+              unsigned char domain_separator_byte,
+              const void *context, size_t len_context,
+              const void *oid, size_t len_oid,
+              const void *msg, size_t len_msg ) {
     unsigned char msg_hash[ sha256_output_size  + 2*max_len_hash ];
     size_t n = len_hash();
 
@@ -151,6 +164,15 @@ void sha256_hash::h_msg( unsigned char *result, size_t len_result,
     ctx.update(r, n);
     ctx.update(pk_seed, n);
     ctx.update(pk_root, n);
+    ctx.update(&domain_separator_byte, 1);
+    unsigned char c = len_context;
+    ctx.update( &c, 1 );
+    if (len_context > 0) {
+        ctx.update(context, len_context);
+    }
+    if (len_oid > 0) {
+        ctx.update(oid, len_oid);
+    }
     ctx.update(msg, len_msg);
     ctx.final(msg_hash + 2*n);
 
@@ -161,15 +183,15 @@ void sha256_hash::h_msg( unsigned char *result, size_t len_result,
     stream.output( result, len_result );
 }
 
-unsigned sha256_hash::num_track(void) {
+unsigned key_sha2::num_track(void) {
     return 8;
 }
-unsigned sha256_hash::num_log_track(void) {
+unsigned key_sha2::num_log_track(void) {
     return 3;
 }
 
-sha256_hash::sha256_hash(void) {
-    // We initialize the offset parameters to SHA-256 specific values
+key_sha2::key_sha2(void) {
+    // We initialize the offset parameters to SHA-2 specific values
     offset_layer = 0; 
     offset_tree = 1;
     offset_type = 9;
@@ -181,4 +203,4 @@ sha256_hash::sha256_hash(void) {
     offset_tree_index = 18;
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

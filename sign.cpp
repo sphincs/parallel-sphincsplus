@@ -1,9 +1,9 @@
 ///
 /// \file sign.cpp
-/// \brief This is the module that actually generates a Sphincs+ signature
+/// \brief This is the module that actually generates an SLH-DSA signature
 ///
 ///
-/// This is the module that actually generates a Sphincs+ signature
+/// This is the module that actually generates an SLH-DSA signature
 /// It uses multithreading to speed the signature generation process (which is
 /// the main reason for this package)
 ///
@@ -50,7 +50,7 @@
 #include "api.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 class task;
 /// This is the object that coordinates all the tasks being done for a
@@ -230,14 +230,40 @@ static inline uint64_t shr(uint64_t a, unsigned shift ) {
         return a >> shift;
 }
 
-//
-// The function that generates a signature
+///
+/// This is the signature API that we use almost all the time
+/// The logic is simple, and so we put it here
 success_flag key::sign(
-            unsigned char* signature, size_t len_signature_buffer,
-            const unsigned char* message, size_t len_message,
-            const random& rand) {
+    unsigned char *signature, size_t len_signature_buffer,
+    const unsigned char *message, size_t len_message,
+    const void *context, size_t len_context,
+    const random& rand) {
+
+    sign_flag result = sign_internal(signature, len_signature_buffer, 0x0,
+		            context, len_context, 0, 0,
+			    message, len_message, rand);
+    if (result == sign_success) {
+	return success;
+    } else {
+	return failure;    // We don't bother reporting the failure reason
+    }
+}
+
+//
+// The internal function that generates a signature
+key::sign_flag key::sign_internal(
+    unsigned char *signature, size_t len_signature_buffer,
+    unsigned char domain_separator_byte,
+    const void *context, size_t len_context,
+    const void *oid, size_t len_oid,
+    const unsigned char *message, size_t len_message,
+    const random& rand) {
+
     // Make sure this key has the private key loaded
-    if (!have_private_key) return false;
+    if (!have_private_key) return sign_no_private_key;
+
+    // Make sure the context isn't too long
+    if (len_context > 255) return sign_bad_context_len;
 
     size_t n = len_hash();
     unsigned i;
@@ -250,7 +276,7 @@ success_flag key::sign(
 
     // Now, check if the buffer we were given is long enough
     if (signature_length > len_signature_buffer) {
-        return failure;   // Buffer overflow - just say no
+        return sign_buffer_too_short;   // Buffer overflow - just say no
     }
 
     // Step 2 - generate the randomness
@@ -266,11 +292,13 @@ success_flag key::sign(
                                               // use the default
     }
     prf_msg( &signature[ geo.randomness_offset ],
-             opt, message, len_message );
+             opt, domain_separator_byte, context, len_context, oid, len_oid,
+	     message, len_message );
 
     // Step 3 - hash the message
     hash_message( geo, &signature[ geo.randomness_offset ],
-                  message, len_message );
+             domain_separator_byte, context, len_context, oid, len_oid,
+             message, len_message );
 
     // Step 4-: now it's time to schedule the various tasks that will
     // need to be done to generate the signature.  First, compute how
@@ -346,7 +374,7 @@ success_flag key::sign(
     }
 
     // All the works been done - declare victory
-    return success;
+    return sign_success;
 }
 
 //
@@ -593,4 +621,4 @@ void task::hash_fors(work_center *w) {
     w->enqueue(this);
 }
 
-}  /* namespace sphincs_plus */
+}  /* namespace slh_dsa */

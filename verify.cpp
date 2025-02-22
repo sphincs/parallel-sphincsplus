@@ -1,6 +1,6 @@
 ///
 /// \file verify.cpp
-/// \brief This is the module that verifies a Sphincs+ signature
+/// \brief This is the module that verifies an SLH-DSA signature
 ///
 /// There's not a great deal of advantage of this over the reference code
 /// (except for our support for multiple parameter sets simultaneously),
@@ -11,19 +11,35 @@
 #include "api.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 //
 // This verifies a signature
+success_flag key::verify( 
+            const unsigned char *signature, size_t len_signature,
+            const void *message, size_t len_message,
+	    const void *context, size_t len_context) {
+    return verify_internal(signature, len_signature,
+		           0x00,    // We're not prehashing
+		           context, len_context,
+			   0, 0,    // No hash OID
+			   message, len_message);
+}
+
 //
 // One note about this logic: this really does process a signature in
 // order (mostly); however our geo logic has the signature components all
 // parsed out, so we use that, rather than stepping through the signature
-success_flag key::verify(
+success_flag key::verify_internal(
             const unsigned char *signature, size_t len_signature,
+	    unsigned char domain_separator_byte,
+	    const void *context, size_t len_context,
+	    const void *oid, size_t len_oid,
             const void *message, size_t len_message) {
     // Make sure this key has the public key loaded
     if (!have_public_key) return false;
+
+    if (len_context > 255) return false;
 
     size_t n = len_hash();
 
@@ -39,7 +55,8 @@ success_flag key::verify(
 
     // Step 2 - hash the message
     hash_message( geo, &signature[ geo.randomness_offset ],
-                  (const unsigned char*)message, len_message );
+             domain_separator_byte, context, len_context, oid, len_oid,
+             message, len_message );
 
     // Step 3 - walk up the FORS trees to generate the FORS root
     // This logic would fit nicely in xn_hash, except that something
@@ -48,7 +65,7 @@ success_flag key::verify(
     for (unsigned i=0; i<k(); i++) {
         memcpy(&fors_node[i * n], signature + geo.fors_offset[i], n );
     }
-    uint track = num_track();
+    unsigned track = num_track();
     addr_t addrx[ max_track ];
     memset( addrx, 0, track * addr_bytes );
     for (int i=0; i<8;i++) {
@@ -184,4 +201,4 @@ success_flag key::verify(
     }
 }
 
-}  /* namespace sphincs_plus */
+}  /* namespace slh_dsa */

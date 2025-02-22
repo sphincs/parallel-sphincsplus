@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "api.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 struct SHAKE256_CTX {
     uint64_t s[26];
@@ -20,6 +20,6 @@ void shake256_inc_squeeze(uint8_t *output, size_t outlen, SHAKE256_CTX* ctx);
 
 void shake256_precompute(SHAKE256_PRECOMPUTE* pre, const uint8_t *input, size_t inlen);
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif

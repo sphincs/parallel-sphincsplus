@@ -11,8 +11,8 @@
 static bool test( const unsigned char *expected_result,
                   const unsigned char *message,
                   unsigned len_message ) {
-    sphincs_plus::SHA512_CTX ctx;
-    sphincs_plus::sha512ctx4x ctx_avx;
+    slh_dsa::SHA512_CTX ctx;
+    slh_dsa::sha512ctx4x ctx_avx;
 
     for (unsigned n = 1; n <= len_message; n++) {
         ctx.init();
@@ -23,17 +23,17 @@ static bool test( const unsigned char *expected_result,
             ctx.update( &message[j], this_len );
         }
 
-        unsigned char actual_result[ sphincs_plus::sha512_output_size ] = { 0 };
+        unsigned char actual_result[ slh_dsa::sha512_output_size ] = { 0 };
         ctx.final( actual_result );
         if (0 != memcmp( expected_result, actual_result,
-                         sphincs_plus::sha512_output_size )) {
+                         slh_dsa::sha512_output_size )) {
             printf( "   *** HASH MISMATCH\n" );
             return false;
         }
 
         /* Now, test out the 4x version */
         for (int track = 0; track < 4; track++) {
-            sphincs_plus::sha512_init4x(&ctx_avx);
+            slh_dsa::sha512_init4x(&ctx_avx);
             unsigned char *dummy_buf = new unsigned char[len_message+4];
             for (unsigned i=0; i<len_message+4; i++)
                 dummy_buf[i] = (unsigned char)i;
@@ -45,12 +45,12 @@ static bool test( const unsigned char *expected_result,
             for (unsigned j=0; j<len_message; j+=n) {
                 unsigned this_len = len_message - j;
                 if (this_len > n) this_len = n;
-                sphincs_plus::sha512_update4x(&ctx_avx, b0+j, b1+j, b2+j, b3+j, this_len );
+                slh_dsa::sha512_update4x(&ctx_avx, b0+j, b1+j, b2+j, b3+j, this_len );
             }
 
             delete[] dummy_buf;
             __m256i out0[2], out1[2], out2[2], out3[2];
-            sphincs_plus::sha512_final4x(&ctx_avx, out0, out1, out2, out3);
+            slh_dsa::sha512_final4x(&ctx_avx, out0, out1, out2, out3);
     	    void *out;
             switch (track) {
             case 0: out = out0; break;
@@ -63,7 +63,7 @@ static bool test( const unsigned char *expected_result,
     	    }
     
             if (0 != memcmp( expected_result, out,
-                             sphincs_plus::sha512_output_size )) {
+                             slh_dsa::sha512_output_size )) {
                 printf( "   *** HASH MISMATCH track %d len %u n = %u\n", track, len_message, n );
                 return false;
             }

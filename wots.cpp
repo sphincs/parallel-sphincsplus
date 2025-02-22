@@ -4,7 +4,7 @@
 /// \file wots.cpp
 /// \brief Routines dealing with WOTS signatures
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 //
 // This takes a message and derives the WOTS chain lengths
@@ -159,4 +159,4 @@ void key::compute_chains(unsigned char *array,
     }
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

@@ -2,12 +2,12 @@
 #define INTERNAL_H_
 
 /// \file internal.h
-/// \brief Definitions used internally for the fast Sphincs+ implementation
+/// \brief Definitions used internally for the fast SLH-DSA implementation
 /// That is, the ones that don't need to be mentioned within api.h
 //
 #include <stdint.h>
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 // Various constants that are used internally (but needn't be published in api.h)
 const int wots_w = 16;      //<! All parameter sets have w=16
@@ -44,7 +44,7 @@ const unsigned default_thread = 4; //<! If the application doesn't tell us
 const unsigned max_thread = 16; //<! No matter what the application says,
                             //<! don't use more than 16 threads
 
-//<! Offsets of objects within a private key (figure 12 of the Sphincs+ spec)
+//<! Offsets of objects within a private key (figure 15 of FIPS 205)
 //<! These are implicitly multiplied by n to get the byte offset
 enum {
     PRIVKEY_SECRETSEED_OFFSET = 0, //<! Offset of the secret seed

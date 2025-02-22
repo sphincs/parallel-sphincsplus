@@ -6,7 +6,7 @@
 #include "api.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 ///
 /// The object that will generate num_track different WOTS public keys
@@ -454,4 +454,4 @@ void gen_fors_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
     k.f_xn(leaves, leaves, leaf_addrx);
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */

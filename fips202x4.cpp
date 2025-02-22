@@ -9,7 +9,7 @@
  */
 #include "keccak4x/KeccakP-1600-times4-SnP.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 void shake256_4x_inc_init(SHAKE256_4X_CTX *ctx) {
     memset( ctx->s, 0, sizeof ctx->s );
@@ -113,5 +113,5 @@ void shake256_4x_inc_init_from_precompute(SHAKE256_4X_CTX* ctx,
     ctx->index = pre->index;
 }
 
-} /* namespace sphincs_plus */
+} /* namespace shl_dsa */
 

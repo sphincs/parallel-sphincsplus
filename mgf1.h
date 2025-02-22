@@ -1,7 +1,7 @@
 #if !defined( MGF1_H_ )
 #define MGF1_H_
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 /// This is the object that implements the MGF1 arbitrary-sized output function
 /// It is parameterized by the hash function used
@@ -59,6 +59,6 @@ public:
     }
 };
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif /* MGF1_H_ */

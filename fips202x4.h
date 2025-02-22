@@ -14,7 +14,7 @@
 #include <immintrin.h>
 #include "api.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 typedef struct SHAKE256_4X_CTX {
     union {
@@ -40,6 +40,6 @@ void shake256_4x_inc_squeeze(uint8_t *output0,
                             uint8_t *output3,
                             size_t outlen, SHAKE256_4X_CTX* ctx);
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif /* FIPS202X4_H_ */

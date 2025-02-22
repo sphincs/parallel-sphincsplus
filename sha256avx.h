@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 static const unsigned int RC[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
@@ -97,6 +97,6 @@ void sha256_final8x(sha256ctx8x *ctx,
 
 void sha256_transform8x(sha256ctx8x *ctx, const unsigned char *data);
 
-} /* sphincs_plus */
+} /* namespace slh_dsa */
 
 #endif

@@ -19,11 +19,13 @@ static struct {
     bool (*test_enabled)(bool);        /* Check if this tests is enabled */
 } test_list[] = {
     { "sha512", test_sha512, "internal SHA-512 implementation test", false, 0 },
-    { "testvector", test_testvector, "test vectors extracted from the reference code", false, 0 },
+    { "testkeygen", test_testvector_keygen, "keygen test vectors extracted from NIST", false, 0 },
+    { "testsign", test_testvector_sign, "signature test vectors extracted from NIST", false, 0 },
     { "keygen", test_keygen, "key generation test", false, 0 },
     { "sign", test_sign, "signature generation test", false, 0 },
     { "verify", test_verify, "signature verification test", true, 0 },
     { "thread", test_thread, "threading test", false, 0 },
+    { "context", test_context, "context test", false, 0 },
  /* Add more here */  
 };
 

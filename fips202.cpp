@@ -12,7 +12,7 @@
 #include "fips202.h"
 #include "internal.h"
 
-namespace sphincs_plus {
+namespace slh_dsa {
 
 const int NROUNDS = 24;
 static uint64_t ROL(uint64_t a, int offset) {
@@ -478,5 +478,5 @@ void shake256_inc_init_from_precompute(SHAKE256_CTX* ctx,
     ctx->s[25] = pre->index;
 }
 
-} /* namespace sphincs_plus */
+} /* namespace slh_dsa */
 
