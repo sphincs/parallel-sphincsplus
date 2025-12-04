@@ -19,6 +19,9 @@ SOURCES =         slh-dsa-fast.cpp sign.cpp xn_hash.cpp \
                   avx512.cpp sha256avx512.cpp sha512avx512.cpp \
                   shake256avx512.cpp
 OBJECTS =         $(subst .cpp,.o,$(SOURCES))
+sha256avx512.o:   CFLAGS += -mavx512f
+sha512avx512.o:   CFLAGS += -mavx512f
+shake256avx512.o: CFLAGS += -mavx512f
 HEADERS =         api.h internal.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
