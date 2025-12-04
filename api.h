@@ -129,6 +129,11 @@ extern hash_type ph_sha256, ph_sha512;
 extern hash_type ph_shake128;  /// This has a 32 byte hash output
 extern hash_type ph_shake256;  /// This has a 64 byte hash output
 
+/// Routine to check for the existance of AVX-512F instructions
+/// The F indicates Foundational - we don't use any instructions in the
+/// more advances instruction sets
+bool check_avx512(void);
+
 ///
 /// This is the base class for a SLH_DSA key (either public or private)
 /// It can hold a private key (which allows you to sign or verify), a public
@@ -165,6 +170,8 @@ private:
            const void *context, size_t len_context,
            const void *oid, size_t len_oid,
            const void *message, size_t len_message );
+
+    bool can_avx512;
 
 public:
     enum sign_flag {
@@ -236,6 +243,7 @@ protected:
                                    //<! Merkle tree
     size_t wots_bytes(void) { return wots_bytes_; } //<! Length of a WOTS
                                    //<! signature
+    bool avx512(void) { return can_avx512; }
 
     const unsigned char *get_secret_seed(void); //<! Get the secret sauce we
                                    //<! use to generate our bottom level values

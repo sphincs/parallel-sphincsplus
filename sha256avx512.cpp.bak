@@ -1,0 +1,475 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#include "sha256avx512.h"
+
+namespace slh_dsa {
+
+typedef __m512i u512;
+
+static void sha256_transform16x(sha256ctx16x *ctx, const unsigned char *data);
+
+static const uint32_t RC[] = {
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+};
+
+static u512 ADD32( u512 a, u512 b ) { return _mm512_add_epi32( a, b ); }
+
+static u512 SHIFTR32( u512 x, int y) { return _mm512_srli_epi32(x, y); }
+
+static u512 ROTR32( u512 x, int y) { return _mm512_rol_epi32(x, 32-y); }
+static u512 ROTL32( u512 x, int y) { return _mm512_rol_epi32(x, y); }
+
+#define AT  _MM_TERNLOG_A   // To reduce typing
+#define BT  _MM_TERNLOG_B
+#define CT  _MM_TERNLOG_C
+
+static u512 XOR3(u512 a, u512 b, u512 c) { return _mm512_ternarylogic_epi64(a,b,c,AT^BT^CT); }
+
+#if 0
+static u512 ADD3_32(u512 a, u512 b, u512 c) { return ADD32(ADD32(a, b), c); }
+#endif
+static u512 ADD4_32(u512 a, u512 b, u512 c, u512 d) { return ADD32(ADD32(a, b), ADD32(c, d) ); }
+static u512 ADD5_32(u512 a, u512 b, u512 c, u512 d, u512 e) { return ADD32( ADD4_32(a, b, c, d), e ); }
+
+static u512 MAJ_AVX(u512 a, u512 b, u512 c) { return _mm512_ternarylogic_epi64(a,b,c,(AT&BT)|(AT&CT)|(BT&CT)); }
+static u512 CH_AVX(u512 a, u512 b, u512 c) { return _mm512_ternarylogic_epi64(a,b,c,CT^(AT&(BT^CT))); } // CT^(AT&(BT^CT)) is the choose function
+
+static u512 SIGMA1_AVX(u512 x) { return XOR3(ROTR32(x, 6), ROTR32(x, 11), ROTR32(x, 25)); }
+static u512 SIGMA0_AVX(u512 x) { return XOR3(ROTR32(x, 2), ROTR32(x, 13), ROTR32(x, 22)); }
+
+static u512 WSIGMA1_AVX(u512 x) { return XOR3(ROTR32(x, 17), ROTR32(x, 19), SHIFTR32(x, 10)); }
+static u512 WSIGMA0_AVX(u512 x) { return XOR3(ROTR32(x, 7), ROTR32(x, 18), SHIFTR32(x, 3)); }
+
+#define SHA256ROUND_AVX(a, b, c, d, e, f, g, h, rc, w) \
+    T0 = ADD5_32(h, SIGMA1_AVX(e), CH_AVX(e, f, g), _mm512_set1_epi32(RC[rc]), w); \
+    d = ADD32(d, T0); \
+    T1 = ADD32(SIGMA0_AVX(a), MAJ_AVX(a, b, c)); \
+    h = ADD32(T0, T1);
+
+
+//
+// This takes the 16 input data blocks, and convert them into the initial
+// 16 w array values, in AVX-512 format (line x is placed into bits 32x to 
+// 32x+31 of each u512 value, and in little-endian bit order)
+static void byteswap_and_transpose( u512 m[16], const unsigned char *in ) {
+    u512 byteswap_c = _mm512_set_epi64(
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff);
+    for (unsigned i=0; i<16; i++) {
+        u512 t  = _mm512_loadu_si512((__m512i *)( &in[64*i] ));
+
+        /* byteswap t */
+        u512 rs = ROTR32( t, 8 );
+        u512 ls = ROTL32( t, 8 );
+        t = _mm512_ternarylogic_epi64(byteswap_c,rs,ls,(~AT&BT) | (AT&CT));
+
+        m[i] = t;
+    }
+
+    u512 c = _mm512_set_epi64(
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000);
+    for (unsigned i=0; i<16; i+=2) {
+        u512 t = m[i];
+        u512 u = m[i+1];
+        u512 tr = _mm512_rol_epi64(t, 32);
+        u512 ur = _mm512_rol_epi64(u, 32);
+        t = _mm512_ternarylogic_epi64(c,t,ur,(AT&CT) | (~AT&BT));
+        m[i] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&CT) | (AT&BT));
+        m[i+1] = u;
+    }
+
+    c = _mm512_set_epi64(
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff);
+    __v8di v10325476 = { 1, 0, 3, 2, 5, 4, 7, 6 };
+    for (unsigned i=0; i<8; i++) {
+        int j = i + (i&~1);
+        u512 t = m[j];
+        u512 tr = __builtin_shuffle(t, v10325476 );
+        u512 u = m[j+2];
+        u512 ur = __builtin_shuffle(u, v10325476 );
+        t = _mm512_ternarylogic_epi64(c,t,ur,(~AT&CT) | (AT&BT));
+        m[j] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&BT) | (AT&CT));
+        m[j+2] = u;
+    }
+
+    c = _mm512_set_epi64(
+        0x0000000000000000, 0x0000000000000000,
+        0xffffffffffffffff, 0xffffffffffffffff,
+        0x0000000000000000, 0x0000000000000000,
+        0xffffffffffffffff, 0xffffffffffffffff);
+    __v8di v23016745 = { 2, 3, 0, 1, 6, 7, 4, 5 };
+    for (unsigned i=0; i<8; i++) {
+        int j = i + (i&~3);
+        u512 t = m[j];
+        u512 tr = __builtin_shuffle(t, v23016745 );
+        u512 u = m[j+4];
+        u512 ur = __builtin_shuffle(u, v23016745 );
+        t = _mm512_ternarylogic_epi64(c,t,ur,(~AT&CT) | (AT&BT));
+        m[j] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&BT) | (AT&CT));
+        m[j+4] = u;
+    }
+
+    c = _mm512_set_epi64(
+        0x0000000000000000, 0x0000000000000000,
+        0x0000000000000000, 0x0000000000000000,
+        0xffffffffffffffff, 0xffffffffffffffff,
+        0xffffffffffffffff, 0xffffffffffffffff);
+    __v8di v45670123 = { 4, 5, 6, 7, 0, 1, 2, 3 };
+    for (unsigned i=0; i<8; i++) {
+        u512 t = m[i];
+        u512 tr = __builtin_shuffle(t, v45670123 );
+        u512 u = m[i+8];
+        u512 ur = __builtin_shuffle(u, v45670123 );
+        t = _mm512_ternarylogic_epi64(c,t,ur,(~AT&CT) | (AT&BT));
+        m[i] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&BT) | (AT&CT));
+        m[i+8] = u;
+    }
+}
+
+//
+// This takes the SHA512 state (in our internal AVX-512 format, that is
+// where lane x is held in bits 32x to 32x+31 on all 8 context elements),
+// and resorts them into the expected SHA-256 output order (where lane x
+// is placed into out[x]), and also byteswaps them (because the AVX-512
+// order is little-endian).
+// This trashes the m input (which is ok, we don't need it anymore)
+static void untranspose_and_byteswap( unsigned char **out, u512 m[8] ) {
+    u512 c = _mm512_set_epi64(
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000,
+        0xffffffff00000000, 0xffffffff00000000);
+    for (unsigned i=0; i<8; i+=2) {
+        u512 t = m[i];
+        u512 u = m[i+1];
+        u512 tr = _mm512_rol_epi64(t, 32);
+        u512 ur = _mm512_rol_epi64(u, 32);
+        t = _mm512_ternarylogic_epi64(c,t,ur,(AT&CT) | (~AT&BT));
+        m[i] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&CT) | (AT&BT));
+        m[i+1] = u;
+    }
+
+    c = _mm512_set_epi64(
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff,
+        0x0000000000000000, 0xffffffffffffffff);
+    __v8di v10325476 = { 1, 0, 3, 2, 5, 4, 7, 6 };
+    for (unsigned i=0; i<4; i++) {
+        int j = i + (i&2);
+        u512 t = m[j];
+        u512 tr = __builtin_shuffle(t, v10325476);
+        u512 u = m[j+2];
+        u512 ur = __builtin_shuffle(u, v10325476);
+        t = _mm512_ternarylogic_epi64(c,t,ur,(~AT&CT) | (AT&BT));
+        m[j] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&BT) | (AT&CT));
+        m[j+2] = u;
+    }
+
+    c = _mm512_set_epi64(
+        0x0000000000000000, 0x0000000000000000,
+        0xffffffffffffffff, 0xffffffffffffffff,
+        0x0000000000000000, 0x0000000000000000,
+        0xffffffffffffffff, 0xffffffffffffffff);
+    __v8di v23016745 = { 2, 3, 0, 1, 6, 7, 4, 5 };
+    for (unsigned i=0; i<4; i++) {
+        u512 t = m[i];
+        u512 tr = __builtin_shuffle(t, v23016745);
+        u512 u = m[i+4];
+        u512 ur = __builtin_shuffle(u, v23016745);
+        t = _mm512_ternarylogic_epi64(c,t,ur,(~AT&CT) | (AT&BT));
+        m[i] = t;
+        u = _mm512_ternarylogic_epi64(c,u,tr,(~AT&BT) | (AT&CT));
+        m[i+4] = u;
+    }
+
+    u512 byteswap_c = _mm512_set_epi64(
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff);
+    __v8di v45670123 = { 4, 5, 6, 7, 0, 1, 2, 3 };
+    for (unsigned i=0; i<8; i++) {
+        u512 t = m[i];
+
+        /* byteswap t */
+        u512 rs = ROTR32( t, 8 );
+        u512 ls = ROTL32( t, 8 );
+        t = _mm512_ternarylogic_epi64(byteswap_c,rs,ls,(~AT&BT) | (AT&CT));
+
+        /* and store the lower and upper halves of t separately */
+        _mm256_storeu_si256( (__m256i*)out[i], _mm512_castsi512_si256(t) );
+        t = __builtin_shuffle(t, v45670123);
+        _mm256_storeu_si256( (__m256i*)out[i+8], _mm512_castsi512_si256(t) );
+    }
+}
+
+void sha256ctx16x::init_frombytes_x16(uint32_t *s, unsigned long long msglen) {
+
+    for (size_t i = 0; i < 8; i++) {
+        uint64_t t = s[i] * 0x100000001;
+        s[i] = _mm512_set_epi64(t, t, t, t, t, t, t, t);
+    }
+
+    datalen = 0;
+    msglen = msglen;
+}
+
+void sha256ctx16x::init16x(void) {
+#define INIT( index, value ) \
+    { uint64_t v = (value * (uint64_t)0x100000001); \
+      s[index] = _mm512_set_epi64(  \
+                    v, v, v, v,     \
+                    v, v, v, v);    \
+    }
+    INIT(0, 0x6a09e667);
+    INIT(1, 0xbb67ae85);
+    INIT(2, 0x3c6ef372);
+    INIT(3, 0xa54ff53a);
+    INIT(4, 0x510e527f);
+    INIT(5, 0x9b05688c);
+    INIT(6, 0x1f83d9ab);
+    INIT(7, 0x5be0cd19);
+#undef INIT
+    
+    datalen = 0;
+    msglen = 0;
+}
+
+void sha256ctx16x::update16x(
+                     unsigned char *input[16],
+                     unsigned long long len) 
+{
+    unsigned long long i = 0;
+
+    while(i < len) {
+        int bytes_to_copy = len - i;
+	if (bytes_to_copy + datalen > 64) bytes_to_copy = 64 - datalen;
+        for (int j=0; j<16; j++) {
+            memcpy(&msgblocks[64*j+datalen], &input[j][i], bytes_to_copy);
+        }
+        datalen += bytes_to_copy;
+        i += bytes_to_copy;
+        if (datalen == 64) {
+            sha256_transform16x(msgblocks);
+            msglen += 512;
+            datalen = 0;
+        }        
+    }
+}
+
+void sha256ctx16x::final16x(unsigned char *out[16]) 
+{
+    unsigned int i, curlen;
+
+    // Padding
+    if (datalen < 56) {
+        for (i = 0; i < 16; ++i) {
+            curlen = datalen;
+            msgblocks[64*i + curlen++] = 0x80;
+            while(curlen < 64) {
+                msgblocks[64*i + curlen++] = 0x00;
+            }
+        }
+    } else {
+        for (i = 0; i < 16; ++i) {
+            curlen = datalen;
+            msgblocks[64*i + curlen++] = 0x80;
+            while(curlen < 64) {
+                msgblocks[64*i + curlen++] = 0x00;
+            }
+        }
+        sha256_transform16x(msgblocks);
+        memset(msgblocks, 0, 8 * 64);
+    }
+
+    // Add length of the message to each block
+    msglen += datalen * 8;
+    for (i = 0; i < 16; i++) {
+        msgblocks[64*i + 63] = msglen;
+        msgblocks[64*i + 62] = msglen >> 8;
+        msgblocks[64*i + 61] = msglen >> 16;
+        msgblocks[64*i + 60] = msglen >> 24;
+        msgblocks[64*i + 59] = msglen >> 32;
+        msgblocks[64*i + 58] = msglen >> 40;
+        msgblocks[64*i + 57] = msglen >> 48;
+        msgblocks[64*i + 56] = msglen >> 56;
+    }
+    sha256_transform16x(msgblocks);
+
+    // Compute final hash output and store the final hash values
+    untranspose_and_byteswap(out, s);
+}
+
+void sha256ctx16x::sha256_transform16x(unsigned char *data) {
+    u512 s0, s1, s2, s3, s4, s5, s6, s7, w[64], T0, T1;
+
+    // Convert the 16 data blocks into the initial 16 w values
+    byteswap_and_transpose( &w[0], data );
+
+    // Initial State
+    s0 = ctx->s[0];
+    s1 = ctx->s[1];
+    s2 = ctx->s[2];
+    s3 = ctx->s[3];
+    s4 = ctx->s[4];
+    s5 = ctx->s[5];
+    s6 = ctx->s[6];
+    s7 = ctx->s[7];
+
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 0, w[0]);
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 1, w[1]);
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 2, w[2]);
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 3, w[3]);
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 4, w[4]);
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 5, w[5]);
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 6, w[6]);
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 7, w[7]);
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 8, w[8]);
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 9, w[9]);
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 10, w[10]);
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 11, w[11]);
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 12, w[12]);
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 13, w[13]);
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 14, w[14]);
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 15, w[15]);   
+    w[16] = ADD4_32(WSIGMA1_AVX(w[14]), w[0], w[9], WSIGMA0_AVX(w[1]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 16, w[16]);
+    w[17] = ADD4_32(WSIGMA1_AVX(w[15]), w[1], w[10], WSIGMA0_AVX(w[2]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 17, w[17]);
+    w[18] = ADD4_32(WSIGMA1_AVX(w[16]), w[2], w[11], WSIGMA0_AVX(w[3]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 18, w[18]);
+    w[19] = ADD4_32(WSIGMA1_AVX(w[17]), w[3], w[12], WSIGMA0_AVX(w[4]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 19, w[19]);
+    w[20] = ADD4_32(WSIGMA1_AVX(w[18]), w[4], w[13], WSIGMA0_AVX(w[5]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 20, w[20]);
+    w[21] = ADD4_32(WSIGMA1_AVX(w[19]), w[5], w[14], WSIGMA0_AVX(w[6]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 21, w[21]);
+    w[22] = ADD4_32(WSIGMA1_AVX(w[20]), w[6], w[15], WSIGMA0_AVX(w[7]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 22, w[22]);
+    w[23] = ADD4_32(WSIGMA1_AVX(w[21]), w[7], w[16], WSIGMA0_AVX(w[8]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 23, w[23]);
+    w[24] = ADD4_32(WSIGMA1_AVX(w[22]), w[8], w[17], WSIGMA0_AVX(w[9]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 24, w[24]);
+    w[25] = ADD4_32(WSIGMA1_AVX(w[23]), w[9], w[18], WSIGMA0_AVX(w[10]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 25, w[25]);
+    w[26] = ADD4_32(WSIGMA1_AVX(w[24]), w[10], w[19], WSIGMA0_AVX(w[11]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 26, w[26]);
+    w[27] = ADD4_32(WSIGMA1_AVX(w[25]), w[11], w[20], WSIGMA0_AVX(w[12]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 27, w[27]);
+    w[28] = ADD4_32(WSIGMA1_AVX(w[26]), w[12], w[21], WSIGMA0_AVX(w[13]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 28, w[28]);
+    w[29] = ADD4_32(WSIGMA1_AVX(w[27]), w[13], w[22], WSIGMA0_AVX(w[14]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 29, w[29]);
+    w[30] = ADD4_32(WSIGMA1_AVX(w[28]), w[14], w[23], WSIGMA0_AVX(w[15]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 30, w[30]);
+    w[31] = ADD4_32(WSIGMA1_AVX(w[29]), w[15], w[24], WSIGMA0_AVX(w[16]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 31, w[31]);   
+    w[32] = ADD4_32(WSIGMA1_AVX(w[30]), w[16], w[25], WSIGMA0_AVX(w[17]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 32, w[32]);
+    w[33] = ADD4_32(WSIGMA1_AVX(w[31]), w[17], w[26], WSIGMA0_AVX(w[18]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 33, w[33]);
+    w[34] = ADD4_32(WSIGMA1_AVX(w[32]), w[18], w[27], WSIGMA0_AVX(w[19]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 34, w[34]);
+    w[35] = ADD4_32(WSIGMA1_AVX(w[33]), w[19], w[28], WSIGMA0_AVX(w[20]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 35, w[35]);
+    w[36] = ADD4_32(WSIGMA1_AVX(w[34]), w[20], w[29], WSIGMA0_AVX(w[21]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 36, w[36]);
+    w[37] = ADD4_32(WSIGMA1_AVX(w[35]), w[21], w[30], WSIGMA0_AVX(w[22]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 37, w[37]);
+    w[38] = ADD4_32(WSIGMA1_AVX(w[36]), w[22], w[31], WSIGMA0_AVX(w[23]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 38, w[38]);
+    w[39] = ADD4_32(WSIGMA1_AVX(w[37]), w[23], w[32], WSIGMA0_AVX(w[24]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 39, w[39]);
+    w[40] = ADD4_32(WSIGMA1_AVX(w[38]), w[24], w[33], WSIGMA0_AVX(w[25]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 40, w[40]);
+    w[41] = ADD4_32(WSIGMA1_AVX(w[39]), w[25], w[34], WSIGMA0_AVX(w[26]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 41, w[41]);
+    w[42] = ADD4_32(WSIGMA1_AVX(w[40]), w[26], w[35], WSIGMA0_AVX(w[27]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 42, w[42]);
+    w[43] = ADD4_32(WSIGMA1_AVX(w[41]), w[27], w[36], WSIGMA0_AVX(w[28]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 43, w[43]);
+    w[44] = ADD4_32(WSIGMA1_AVX(w[42]), w[28], w[37], WSIGMA0_AVX(w[29]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 44, w[44]);
+    w[45] = ADD4_32(WSIGMA1_AVX(w[43]), w[29], w[38], WSIGMA0_AVX(w[30]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 45, w[45]);
+    w[46] = ADD4_32(WSIGMA1_AVX(w[44]), w[30], w[39], WSIGMA0_AVX(w[31]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 46, w[46]);
+    w[47] = ADD4_32(WSIGMA1_AVX(w[45]), w[31], w[40], WSIGMA0_AVX(w[32]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 47, w[47]);
+    w[48] = ADD4_32(WSIGMA1_AVX(w[46]), w[32], w[41], WSIGMA0_AVX(w[33]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 48, w[48]);
+    w[49] = ADD4_32(WSIGMA1_AVX(w[47]), w[33], w[42], WSIGMA0_AVX(w[34]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 49, w[49]);
+    w[50] = ADD4_32(WSIGMA1_AVX(w[48]), w[34], w[43], WSIGMA0_AVX(w[35]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 50, w[50]);
+    w[51] = ADD4_32(WSIGMA1_AVX(w[49]), w[35], w[44], WSIGMA0_AVX(w[36]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 51, w[51]);
+    w[52] = ADD4_32(WSIGMA1_AVX(w[50]), w[36], w[45], WSIGMA0_AVX(w[37]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 52, w[52]);
+    w[53] = ADD4_32(WSIGMA1_AVX(w[51]), w[37], w[46], WSIGMA0_AVX(w[38]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 53, w[53]);
+    w[54] = ADD4_32(WSIGMA1_AVX(w[52]), w[38], w[47], WSIGMA0_AVX(w[39]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 54, w[54]);
+    w[55] = ADD4_32(WSIGMA1_AVX(w[53]), w[39], w[48], WSIGMA0_AVX(w[40]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 55, w[55]);
+    w[56] = ADD4_32(WSIGMA1_AVX(w[54]), w[40], w[49], WSIGMA0_AVX(w[41]));
+    SHA256ROUND_AVX(s0, s1, s2, s3, s4, s5, s6, s7, 56, w[56]);
+    w[57] = ADD4_32(WSIGMA1_AVX(w[55]), w[41], w[50], WSIGMA0_AVX(w[42]));
+    SHA256ROUND_AVX(s7, s0, s1, s2, s3, s4, s5, s6, 57, w[57]); 
+    w[58] = ADD4_32(WSIGMA1_AVX(w[56]), w[42], w[51], WSIGMA0_AVX(w[43]));
+    SHA256ROUND_AVX(s6, s7, s0, s1, s2, s3, s4, s5, 58, w[58]);   
+    w[59] = ADD4_32(WSIGMA1_AVX(w[57]), w[43], w[52], WSIGMA0_AVX(w[44]));
+    SHA256ROUND_AVX(s5, s6, s7, s0, s1, s2, s3, s4, 59, w[59]);
+    w[60] = ADD4_32(WSIGMA1_AVX(w[58]), w[44], w[53], WSIGMA0_AVX(w[45]));
+    SHA256ROUND_AVX(s4, s5, s6, s7, s0, s1, s2, s3, 60, w[60]);
+    w[61] = ADD4_32(WSIGMA1_AVX(w[59]), w[45], w[54], WSIGMA0_AVX(w[46]));
+    SHA256ROUND_AVX(s3, s4, s5, s6, s7, s0, s1, s2, 61, w[61]);
+    w[62] = ADD4_32(WSIGMA1_AVX(w[60]), w[46], w[55], WSIGMA0_AVX(w[47]));
+    SHA256ROUND_AVX(s2, s3, s4, s5, s6, s7, s0, s1, 62, w[62]);
+    w[63] = ADD4_32(WSIGMA1_AVX(w[61]), w[47], w[56], WSIGMA0_AVX(w[48]));
+    SHA256ROUND_AVX(s1, s2, s3, s4, s5, s6, s7, s0, 63, w[63]);
+
+    // Feed Forward
+    s[0] = ADD32(s0, s[0]);
+    s[1] = ADD32(s1, s[1]);
+    s[2] = ADD32(s2, s[2]);
+    s[3] = ADD32(s3, s[3]);
+    s[4] = ADD32(s4, s[4]);
+    s[5] = ADD32(s5, s[5]);
+    s[6] = ADD32(s6, s[6]);
+    s[7] = ADD32(s7, s[7]);
+}
+
+} /* namespace slh_dsa */

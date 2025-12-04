@@ -10,5 +10,7 @@ extern bool test_sign(bool fast_flag, enum noise_level level);
 extern bool test_verify(bool fast_flag, enum noise_level level);
 extern bool test_thread(bool fast_flag, enum noise_level level);
 extern bool test_context(bool fast_flag, enum noise_level level);
+extern bool test_avx512(bool fast_flag, enum noise_level level);
+extern bool enable_avx512(bool fast_flag);
 
 #endif /* TEST_SPHINCS_H_ */

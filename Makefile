@@ -1,7 +1,7 @@
 CC = /usr/bin/gcc
 CPP = /usr/bin/g++
 AR = /usr/bin/gcc-ar
-CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto
+CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto -mavx512f
 
 %.o : %.cpp ; $(CPP) -c $(CFLAGS) $< -o $@
 
@@ -15,14 +15,16 @@ SOURCES =         slh-dsa-fast.cpp sign.cpp xn_hash.cpp \
 		  fips202.cpp fips202x4.cpp \
                   keccak4x/KeccakP-1600-times4-SIMD256.o \
 		  rdrand.cpp \
-                  wots.cpp geo.cpp address.cpp utils.cpp
+                  wots.cpp geo.cpp address.cpp utils.cpp \
+                  avx512.cpp sha256avx512.cpp sha512avx512.cpp \
+                  shake256avx512.cpp
 OBJECTS =         $(subst .cpp,.o,$(SOURCES))
 HEADERS =         api.h internal.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
 		  test_verify.cpp test_thread.cpp test_testvector_sign.cpp \
 		  test_testvector_keygen.cpp \
-		  test_sha512.cpp test_context.cpp
+		  test_sha512.cpp test_context.cpp test_avx512.cpp
 
 TESTS = test test_slh_dsa
 

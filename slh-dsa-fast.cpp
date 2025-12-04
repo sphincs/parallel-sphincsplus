@@ -150,6 +150,8 @@ key::key(void) {
     offset_tree_index = 28;
 
     num_thread = default_thread;
+
+    can_avx512 = check_avx512();   // Check if AVX-512 instructions are available 
 }
 
 key::~key(void) {
