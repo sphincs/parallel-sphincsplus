@@ -1,3 +1,5 @@
+# This branch currently has AVX-512 implementations of SHA-256, SHA-512 and SHAKE-256, but those are not yet integrated into the SLH-DSA infrastructure
+
 ## A multithreaded implementation of the SLH-DSA signature algorithm
 
 This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205)
