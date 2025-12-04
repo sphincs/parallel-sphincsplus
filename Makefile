@@ -1,7 +1,7 @@
 CC = /usr/bin/gcc
 CPP = /usr/bin/g++
 AR = /usr/bin/gcc-ar
-CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto -mavx512f
+CFLAGS = -Wall -Wextra -Wpedantic -O3 -g -march=native -fomit-frame-pointer -flto
 
 %.o : %.cpp ; $(CPP) -c $(CFLAGS) $< -o $@
 
