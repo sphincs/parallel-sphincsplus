@@ -2,6 +2,7 @@
 #define SHAKE256AVX512_H_
 
 #include "immintrin.h"
+#include "fips202.h"
 
 namespace slh_dsa {
 

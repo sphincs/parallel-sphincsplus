@@ -97,21 +97,5 @@ void shake256_4x_inc_squeeze(uint8_t *output0,
     ctx->index = index;
 }
 
-void shake256_4x_inc_init_from_precompute(SHAKE256_4X_CTX* ctx,
-                                       const SHAKE256_PRECOMPUTE* pre) {
-    unsigned i;
-    unsigned nonzero = pre->nonzero;
-    for (i=0; i<nonzero; i++) {
-        uint64_t entry = pre->s[i];
-	ctx->s[i][0] = entry;
-	ctx->s[i][1] = entry;
-	ctx->s[i][2] = entry;
-	ctx->s[i][3] = entry;
-    }
-    memset( &ctx->s[nonzero][0], 0, 4*8*(25-nonzero) );
-
-    ctx->index = pre->index;
-}
-
 } /* namespace shl_dsa */
 

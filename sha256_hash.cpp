@@ -183,13 +183,6 @@ void key_sha2::h_msg( unsigned char *result, size_t len_result,
     stream.output( result, len_result );
 }
 
-unsigned key_sha2::num_track(void) {
-    return 8;
-}
-unsigned key_sha2::num_log_track(void) {
-    return 3;
-}
-
 key_sha2::key_sha2(void) {
     // We initialize the offset parameters to SHA-2 specific values
     offset_layer = 0; 
@@ -201,6 +194,11 @@ key_sha2::key_sha2(void) {
     offset_hash_addr = 21;
     offset_tree_hgt = 17;
     offset_tree_index = 18;
+
+    // and reset the default number of tracks (assuming no AVX-512)
+    num_track_ = 8;
+    num_log_track_ = 3;
+
 }
 
 } /* namespace slh_dsa */

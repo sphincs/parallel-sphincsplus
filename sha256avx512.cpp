@@ -44,9 +44,6 @@ static u512 ROTL32( u512 x, int y) { return _mm512_rol_epi32(x, y); }
 
 static u512 XOR3(u512 a, u512 b, u512 c) { return _mm512_ternarylogic_epi64(a,b,c,AT^BT^CT); }
 
-#if 0
-static u512 ADD3_32(u512 a, u512 b, u512 c) { return ADD32(ADD32(a, b), c); }
-#endif
 static u512 ADD4_32(u512 a, u512 b, u512 c, u512 d) { return ADD32(ADD32(a, b), ADD32(c, d) ); }
 static u512 ADD5_32(u512 a, u512 b, u512 c, u512 d, u512 e) { return ADD32( ADD4_32(a, b, c, d), e ); }
 
@@ -71,11 +68,7 @@ static u512 WSIGMA0_AVX(u512 x) { return XOR3(ROTR32(x, 7), ROTR32(x, 18), SHIFT
 // 16 w array values, in AVX-512 format (line x is placed into bits 32x to 
 // 32x+31 of each u512 value, and in little-endian bit order)
 static void byteswap_and_transpose( u512 m[16], const unsigned char *in ) {
-    u512 byteswap_c = _mm512_set_epi64(
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff);
+    u512 byteswap_c = _mm512_set1_epi64(0x00ff00ff00ff00ff);
     for (unsigned i=0; i<16; i++) {
         u512 t  = _mm512_loadu_si512((__m512i *)( &in[64*i] ));
 
@@ -216,11 +209,7 @@ static void untranspose_and_byteswap( unsigned char **out, u512 m[8] ) {
         m[i+4] = u;
     }
 
-    u512 byteswap_c = _mm512_set_epi64(
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff);
+    u512 byteswap_c = _mm512_set1_epi64(0x00ff00ff00ff00ff);
     __v8di v45670123 = { 4, 5, 6, 7, 0, 1, 2, 3 };
     for (unsigned i=0; i<8; i++) {
         u512 t = m[i];
@@ -237,7 +226,7 @@ static void untranspose_and_byteswap( unsigned char **out, u512 m[8] ) {
     }
 }
 
-void SHA256_16x_CTX::init_from_intermediate(uint32_t *in, unsigned long long mlen) {
+SHA256_16x_CTX::SHA256_16x_CTX(uint32_t *in, unsigned long long mlen) {
 
     for (size_t i = 0; i < 8; i++) {
         uint64_t t = in[i] * 0x100000001;
@@ -248,7 +237,7 @@ void SHA256_16x_CTX::init_from_intermediate(uint32_t *in, unsigned long long mle
     msglen = mlen;
 }
 
-void SHA256_16x_CTX::init(void) {
+SHA256_16x_CTX::SHA256_16x_CTX(void) {
 #define INIT( index, value ) \
     { uint64_t v = (value * (uint64_t)0x100000001); \
       s[index] = _mm512_set1_epi64( v ); \

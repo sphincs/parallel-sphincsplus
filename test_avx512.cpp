@@ -70,7 +70,6 @@ static bool test_sha256( const unsigned char *message, size_t message_len, const
     
             // Hash it
             slh_dsa::SHA256_16x_CTX ctx;
-            ctx.init();
             for (size_t j=0; j<=message_len; j+=delta) {
                 size_t this_len = message_len - j;
                 if (this_len > delta) this_len = delta;
@@ -114,8 +113,7 @@ static bool test_sha256( const unsigned char *message, size_t message_len, const
                 }
             }
 
-            slh_dsa::SHA256_16x_CTX ctx;
-            ctx.init_from_intermediate(precompute, 512);
+            slh_dsa::SHA256_16x_CTX ctx(precompute, 512);
             ctx.update(in, message_len-64);
             ctx.final(out);
     

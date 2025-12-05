@@ -8,36 +8,64 @@
 #include "internal.h"
 #include "fips202.h"
 #include "fips202x4.h"
+#include "shake256avx512.h"
 
 namespace slh_dsa {
 
 /*
- * 4-way parallel version of prf_addr; takes 4x as much input and output
+ * 4-way or 8-way parallel version of prf_addr; takes 4x or 8x as much input and output
  * This is SHAKE-256 specific
  */
 void key_shake::prf_addr_xn(unsigned char **out,
-                const addr_t* addrx4)
+                const addr_t* addrx)
 {
-    SHAKE256_4X_CTX ctx;
     unsigned n = len_hash();
-
-    shake256_4x_inc_init_from_precompute(&ctx, &pre_pub_seed );
-    shake256_4x_inc_absorb(&ctx,
-                           addrx4[0],
-                           addrx4[1],
-                           addrx4[2],
-                           addrx4[3],
-                           addr_bytes);
+    const unsigned char *public_seed = get_public_seed();
     const unsigned char *secret_seed = get_secret_seed();
-    shake256_4x_inc_absorb(&ctx,
-		           secret_seed,
-		           secret_seed,
-		           secret_seed,
-		           secret_seed,
-                           n);
-    shake256_4x_inc_finalize(&ctx);
-    shake256_4x_inc_squeeze(out[0], out[1], out[2], out[3],
-                            n, &ctx);
+    if (do_avx512) {
+        SHAKE256_8x_CTX ctx;
+
+        ctx.init();
+        unsigned char *pointer[8];
+        for (int i=0; i<8; i++) {
+            pointer[i] = const_cast<unsigned char*>(public_seed);
+        }
+        ctx.update(pointer, n);
+        for (int i=0; i<8; i++) {
+            pointer[i] = const_cast<unsigned char*>(addrx[i]);
+        }
+        ctx.update(pointer, addr_bytes);
+        for (int i=0; i<8; i++) {
+            pointer[i] = const_cast<unsigned char*>(secret_seed);
+        }
+        ctx.update(pointer, n);
+        ctx.squeeze(out, n);
+    } else {
+        SHAKE256_4X_CTX ctx;
+    
+        shake256_4x_inc_init( &ctx );
+        shake256_4x_inc_absorb(&ctx,
+                               public_seed,
+                               public_seed,
+                               public_seed,
+                               public_seed,
+                               n);
+        shake256_4x_inc_absorb(&ctx,
+                               addrx[0],
+                               addrx[1],
+                               addrx[2],
+                               addrx[3],
+                               addr_bytes);
+        shake256_4x_inc_absorb(&ctx,
+    		           secret_seed,
+    		           secret_seed,
+    		           secret_seed,
+    		           secret_seed,
+                               n);
+        shake256_4x_inc_finalize(&ctx);
+        shake256_4x_inc_squeeze(out[0], out[1], out[2], out[3],
+                                n, &ctx);
+    }
 }
 
 // prf_msg is defined as SHAKE256( prf || optrand || msg )
@@ -97,23 +125,18 @@ void key_shake::h_msg( unsigned char *result, size_t len_result,
     shake256_inc_squeeze(result, len_result, &ctx);
 }
 
-//
-// Scurry away copies of the public and secret seeds
-void key_shake::set_public_key(const unsigned char *public_key) {
-    key::set_public_key(public_key);
-    shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
-}
-
-void key_shake::set_private_key(const unsigned char *private_key) {
-    key::set_private_key(private_key);
-    shake256_precompute( &pre_pub_seed, get_public_seed(), len_hash() );
-}
-
-unsigned key_shake::num_track(void) {
-    return 4;
-}
-unsigned key_shake::num_log_track(void) {
-    return 2;
+key_shake::key_shake(void) {
+    if (check_avx512()) {
+        // Use the AVX-512 version
+        num_track_ = 8;
+        num_log_track_ = 3;
+        do_avx512 = true;
+    } else {
+        // Use the AVX-2 version
+        num_track_ = 4;
+        num_log_track_ = 2;
+        do_avx512 = false;
+    }
 }
 
 } /* namespace slh_dsa */

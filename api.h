@@ -96,14 +96,6 @@ struct digit;   // Used internally, some member functions refer to it
 struct signature_geometry; // Ditto
 
 ///
-/// A SHAKE256 intermediate state after some prefix has been hashed
-struct SHAKE256_PRECOMPUTE {
-    uint64_t s[25];   //<! The state of the SHAKE256 permutation
-    unsigned index;   //<! The byte index where we absorb the next byte
-    unsigned nonzero; //<! Number of nonzero (64 bit) words
-};
-
-///
 /// Abstract class used to generate num_track leaf nodes
 class leaf_gen {
 public:
@@ -131,7 +123,7 @@ extern hash_type ph_shake256;  /// This has a 64 byte hash output
 
 /// Routine to check for the existance of AVX-512F instructions
 /// The F indicates Foundational - we don't use any instructions in the
-/// more advances instruction sets
+/// more advanced instruction sets
 bool check_avx512(void);
 
 ///
@@ -419,9 +411,11 @@ protected:
                     addr_t* tree_addrxn);
 
     /// This is the number of hashes we can compute in parallel
-    virtual unsigned num_track(void) = 0;
+    unsigned num_track_;
+    unsigned num_track(void) { return num_track_; }
     /// This is the log2 of the number of hashes we can compute in parallel
-    virtual unsigned num_log_track(void) = 0;
+    unsigned num_log_track_;
+    unsigned num_log_track(void) { return num_log_track_; }
 
     // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
@@ -735,9 +729,6 @@ protected:
     /// The prehashed public seed
     uint32_t state_seeded[8];
 
-    virtual unsigned num_track(void);
-    virtual unsigned num_log_track(void);
-
     key_sha2(void);
 public:
     virtual void set_public_key(const unsigned char *public_key);
@@ -746,11 +737,9 @@ public:
 
 /// This abstract class is for SHAKE-based parameter sets
 class key_shake : public key {
+    bool do_avx512;
 protected:
-    SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The prehashed public seed
-
-    virtual unsigned num_track(void);
-    virtual unsigned num_log_track(void);
+    key_shake(void);
 
     virtual void prf_addr_xn(unsigned char **out,
               const addr_t* addrxn);
@@ -772,9 +761,6 @@ protected:
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
-public:
-    virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
 };
 
 // And the L3, L5 versions of the SHA2 parameter sets
