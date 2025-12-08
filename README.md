@@ -1,4 +1,4 @@
-# This branch currently has AVX-512 support of the SHAKE-256 parameter sets; also implementations of SHA-256, SHA-512, but those are not yet integrated into the SLH-DSA infrastructure
+# This branch currently has AVX-512 support (except the SHA2-128F, SHA2-192F parameter sets)
 
 ## A multithreaded implementation of the SLH-DSA signature algorithm
 
