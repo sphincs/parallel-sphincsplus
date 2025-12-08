@@ -1,5 +1,5 @@
-#ifndef SHA512AVX_H
-#define SHA512AVX_H
+#ifndef SHA512AVX512_H
+#define SHA512AVX512_H
 #include <stdint.h>
 #include "immintrin.h"
 
@@ -27,4 +27,4 @@ public:
 
 } /* slh_dsa */
 
-#endif
+#endif /* SHA512AVX512_H */

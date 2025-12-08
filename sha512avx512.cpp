@@ -21,11 +21,7 @@ typedef __m512i u512;
 static void TRANSPOSE_AND_BYTESWAP( u512 m[16], const unsigned char *in ) {
 
     // Read in the input and byteswap
-    u512 byteswap_c = _mm512_set_epi64(
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
-        0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff);
+    u512 byteswap_c = _mm512_set1_epi64(0x00ff00ff00ff00ff);
     for (unsigned i=0; i<16; i++) {
         u512 t  = _mm512_loadu_si512((__m512i *)( &in[64*i] ));
 

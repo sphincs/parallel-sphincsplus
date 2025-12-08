@@ -317,7 +317,7 @@ void SHA256_16x_CTX::final(unsigned char *out[16]) {
     transform(msgblocks);
 
     // Compute final hash output and store the final hash values
-    untranspose_and_byteswap( out, s);
+    untranspose_and_byteswap(out, s);
 }
 
 void SHA256_16x_CTX::transform(const unsigned char *data) {

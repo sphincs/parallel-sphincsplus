@@ -36,8 +36,8 @@ const int max_mgf1_input = max_len_hash + sha256_addr_bytes; //<! The
                             //<! maximum seed size for an MGF1 input; this
                             //<! maximum occurs during a message hash for L5
                             //<! SHA256-robust parameter sets.
-const unsigned max_track = 8; //<! The maximum number of hashes we can do in
-                            //<! parallel (on a single thread) is 8
+const unsigned max_track = 16; //<! The maximum number of hashes we can do in
+                            //<! parallel (on a single thread) is 16 (SHA-256 AVX512)
 
 const unsigned default_thread = 4; //<! If the application doesn't tell us
                             //<! otherwise, try to use 4 threads

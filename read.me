@@ -143,6 +143,8 @@ Some comments:
   to be the ones with multiple cores available); we also assume that
   AVX2, AES_NI and RDRAND instructions are available, and that plenty of
   memory is available.
+- The version in this branch supports AVX-512 instructions, if available.
+  It checks, and will fall back to AVX-2 instructions if they're not.
 - The API doesn't follow the NIST conventions; the NIST API is less than
   ideal (in my view), and since I wasn't required to follow it, I designed
   my own.
@@ -205,9 +207,31 @@ Some comments:
 - I included a regression test package (test_slh_dsa); it has a number of
   options; the quickest way is to do:
        make test_slh_dsa
-       slh_dsa all
+       test_slh_dsa all
   which will run all the tests it has on a representative sample of
-  parameter sets.
+  parameter sets.  You can run 'test_slh_dsa all -full' if you want a
+  bit thorough (and far more lengthy) test.
+- This branch includes AVX-512 support - it can potentially double the
+  performance (by doubling the number of hashes that can be computed by
+  a single thread with one operation).  For SHA-256, it increases the
+  number of hashes per thread from 8 to 16; for SHA-512 and SHAKE-256,
+  it increases it from 4 to 8.  Subnotes:
+  - AVX-512 is not supported for the SHA2-128F, SHA2-192F parameter sets;
+    if you use those parameter sets, it'll use AVX-2 always. That's because 
+    of how this implementation works internally; for SHA2, AVX-512 wants to
+    evaluate 16 WOTS+ roots at once for a Merkle tree; for those parameter 
+    sets, there are only 8 per Merkle tree, and that messes up the logic
+    (and tweaking the logic would be more work than it's worth).  Now,
+    for verification, AVX-512 would work, even for those parameter sets;
+    maybe that's something we can support in the future.
+  - The code contains AVX-512 implementations of SHA-256, SHA-512 and
+    SHAKE-256.  However, the SHAKE-256 implementation is peculiar; instead
+    of treating all 1600 state bits the same (which is standard for Keccak
+    implementations), it separates out the rate and capacility bits.
+    Because of this, it is specific for SHAKE-256 (with rate=1088);
+    changing it to do SHA3-256 would be easy (change the padding, and
+    squeeze out only 256 bits); anything else would involve real code
+    changes.
 
 Design decisions:
   - I made the API using C++, rather than C; that provides us options
@@ -242,7 +266,7 @@ Design decisions:
   - This package is written in C++, the features we use are namespaces (so
     we can avoid namespace collisions without having to prefix everything
     with "slh_dsa"; otherwise, I would never have a class with as generic
-    a name as "key"), and classes (which we use to select the parameter set,
+    a name as "key"), and classes, which we use to select the parameter set,
     as well as give us convienent place to place expanded keys and whatnot.
     We don't use any of the more advanced features, such as RTTI; we do use
     templates and pointers to member functions at times.
@@ -253,7 +277,8 @@ Design decisions:
   - One thing I'm not pleased with is the amount of internal stuff C++
     insists we place into api.h; yes, we've made most of that protected (so,
     in theory, the application shouldn't need to worry about it), however
-    (IMHO) it'd be cleaner if it wasn't there at all.
+    (IMHO) it'd be cleaner if it wasn't there at all. However, stuffing
+    everything into header files appears to be the C++ way.
   - I also note that C++ (or at least, my compiler) apparently doesn't like
     VLAs (even for C POD types).  I suppose that their prefered solution is
     to use new with some smart pointer; I'm not that thrilled with that idea
@@ -266,4 +291,8 @@ Design decisions:
     by only some of the applications were in their own files (so that a static
     linker would find it easy to not include them if the application didn't
     use a parameter set that needed them, not that's that big of a deal for
-    the platforms this is expected to run on).
+    the platforms this is expected to run on).  And, some of the sources
+    reflect historical aspects, such as the internal references to "sphincs"
+    (all the external references were switched to SLH-DSA), and the
+    "_simple" files; there used to be "_robust" versions (which supported
+    the 'robust' versions of the parameter sets) before NIST kicked them out.

@@ -5,6 +5,7 @@
 #include "api.h"
 #include "internal.h"
 #include "sha256avx.h"
+#include "sha256avx512.h"
 #include "sha256.h"
 
 namespace slh_dsa {
@@ -31,59 +32,83 @@ void key_sha2::thash( unsigned char *out,
 }
 
 /**
- * 8-way parallel version of thash; takes 8x as much input and output
+ * 8 or 16-way parallel version of thash; takes 8x or 16x as much input and output
  */
 void key_sha2::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
-             addr_t* addrx8)
+             addr_t* addrx)
 {
-    __m256i outbufx8[8][sha256_output_size / sizeof(__m256i)];
-    sha256ctx8x ctx;
-
-    sha256_init_frombytes_x8(&ctx, state_seeded, 512);
-
     int n = len_hash();
-    sha256_update8x(&ctx,
-                    &addrx8[0],
-                    &addrx8[1],
-                    &addrx8[2],
-                    &addrx8[3],
-                    &addrx8[4],
-                    &addrx8[5],
-                    &addrx8[6],
-                    &addrx8[7],
-                    sha256_addr_bytes );
 
-    sha256_update8x(&ctx,
-                    in[0],
-                    in[1],
-                    in[2],
-                    in[3],
-                    in[4],
-                    in[5],
-                    in[6],
-                    in[7],
-                    inblocks * n );
+    if (do_avx512) {
+        SHA256_16x_CTX ctx( state_seeded, 512 );
 
-    sha256_final8x(&ctx,
-                   outbufx8[0],
-                   outbufx8[1],
-                   outbufx8[2],
-                   outbufx8[3],
-                   outbufx8[4],
-                   outbufx8[5],
-                   outbufx8[6],
-                   outbufx8[7]);
-
-    memcpy(out[0], outbufx8[0], n);
-    memcpy(out[1], outbufx8[1], n);
-    memcpy(out[2], outbufx8[2], n);
-    memcpy(out[3], outbufx8[3], n);
-    memcpy(out[4], outbufx8[4], n);
-    memcpy(out[5], outbufx8[5], n);
-    memcpy(out[6], outbufx8[6], n);
-    memcpy(out[7], outbufx8[7], n);
+        unsigned char *pointer[16];
+        for (int i=0; i<16; i++) {
+            pointer[i] = const_cast<unsigned char*>(addrx[i]);
+        }
+        ctx.update(pointer, sha256_addr_bytes);
+        ctx.update(in, inblocks * n );
+        if (n == 32) {
+            ctx.final(out);   // No truncation needed
+        } else {
+            unsigned char outbuff[16][32];
+            for (int i=0; i<16; i++) {
+                pointer[i] = outbuff[i];
+            }
+            ctx.final(pointer);
+            for (int i=0; i<16; i++) {
+                memcpy(out[i], outbuff[i], n);
+            }
+        }
+    } else {
+        __m256i outbufx8[8][sha256_output_size / sizeof(__m256i)];
+        sha256ctx8x ctx;
+    
+        sha256_init_frombytes_x8(&ctx, state_seeded, 512);
+    
+        sha256_update8x(&ctx,
+                        &addrx[0],
+                        &addrx[1],
+                        &addrx[2],
+                        &addrx[3],
+                        &addrx[4],
+                        &addrx[5],
+                        &addrx[6],
+                        &addrx[7],
+                        sha256_addr_bytes );
+    
+        sha256_update8x(&ctx,
+                        in[0],
+                        in[1],
+                        in[2],
+                        in[3],
+                        in[4],
+                        in[5],
+                        in[6],
+                        in[7],
+                        inblocks * n );
+    
+        sha256_final8x(&ctx,
+                       outbufx8[0],
+                       outbufx8[1],
+                       outbufx8[2],
+                       outbufx8[3],
+                       outbufx8[4],
+                       outbufx8[5],
+                       outbufx8[6],
+                       outbufx8[7]);
+    
+        memcpy(out[0], outbufx8[0], n);
+        memcpy(out[1], outbufx8[1], n);
+        memcpy(out[2], outbufx8[2], n);
+        memcpy(out[3], outbufx8[3], n);
+        memcpy(out[4], outbufx8[4], n);
+        memcpy(out[5], outbufx8[5], n);
+        memcpy(out[6], outbufx8[6], n);
+        memcpy(out[7], outbufx8[7], n);
+    }
 }
 
 } /* slh_dsa */

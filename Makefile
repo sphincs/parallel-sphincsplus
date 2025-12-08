@@ -9,7 +9,7 @@ SOURCES =         slh-dsa-fast.cpp sign.cpp xn_hash.cpp \
 		  verify.cpp stl.cpp prehash.cpp \
                   sha256_hash.cpp sha256_simple.cpp \
 		  sha256.cpp sha256avx.cpp \
-		  sha512_hash.cpp sha512.cpp mgf1_512_4x.cpp sha512avx.cpp \
+		  sha512_hash.cpp sha512.cpp sha512avx.cpp \
 		  sha512_simple.cpp \
                   shake256_hash.cpp shake256_simple.cpp \
 		  fips202.cpp fips202x4.cpp \

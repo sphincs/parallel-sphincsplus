@@ -254,7 +254,7 @@ protected:
     /// These tell this object what geometry (e.g. the number and size of
     /// FORS trees and Merkle trees) this parameter set will be using
     /// It should be called only during construction
-    void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
+    virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
                        size_t d, size_t wots_digits );
     /// We're implementing a 128S parameter set
     void set_128s(void) { set_geometry( 16, 14, 12, 63,  7, 35 ); }
@@ -696,6 +696,10 @@ public:
 /// This abstract class is for SHA2-based parameter sets
 class key_sha2 : public key {
 protected:
+    bool do_avx512;
+    virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
+                       size_t d, size_t wots_digits );
+
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
     /// This is called whenever we update the public key (which includes

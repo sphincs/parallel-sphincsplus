@@ -68,7 +68,7 @@ success_flag key::verify_internal(
     unsigned track = num_track();
     addr_t addrx[ max_track ];
     memset( addrx, 0, track * addr_bytes );
-    for (int i=0; i<8;i++) {
+    for (unsigned i=0; i<track;i++) {
         set_tree_addr(addrx[i], geo.idx_tree);
         set_keypair_addr(addrx[i], geo.idx_leaf);
         set_type(addrx[i], ADDR_TYPE_FORSTREE);
