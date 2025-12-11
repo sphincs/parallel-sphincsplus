@@ -10,6 +10,11 @@
 
 namespace slh_dsa {
 
+extern const uint32_t SHA256_RC[64]; //<! The SHA-256 round constants.  Shared
+                                    //<! between our SHA-256 implementations
+                                    //<! (the standard, the AVX-2 and AVX-512)
+             
+
 typedef uint32_t sha256_state[8];   //<! The core SHA256 state
                                     //<! Used both internally in the SHA256
                                     //<! implementation, and to store

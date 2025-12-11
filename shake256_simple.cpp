@@ -39,7 +39,6 @@ void key_shake::thash_xn(unsigned char **out,
     if (do_avx512) {
         SHAKE256_8x_CTX ctx;
     
-        ctx.init();
         unsigned char *pointer[8];
         for (int i=0; i<8; i++) {
             pointer[i] = const_cast<unsigned char*>(public_seed);

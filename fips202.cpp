@@ -22,7 +22,7 @@ static uint64_t ROL(uint64_t a, int offset) {
 const int SHAKE256_RATE = 136;
 
 /* Keccak round constants */
-static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
+const uint64_t KeccakF_RoundConstants[NROUNDS] = {
     0x0000000000000001ULL, 0x0000000000008082ULL,
     0x800000000000808aULL, 0x8000000080008000ULL,
     0x000000000000808bULL, 0x0000000080000001ULL,

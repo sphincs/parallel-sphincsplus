@@ -25,7 +25,6 @@ void key_shake::prf_addr_xn(unsigned char **out,
     if (do_avx512) {
         SHAKE256_8x_CTX ctx;
 
-        ctx.init();
         unsigned char *pointer[8];
         for (int i=0; i<8; i++) {
             pointer[i] = const_cast<unsigned char*>(public_seed);
@@ -128,14 +127,14 @@ void key_shake::h_msg( unsigned char *result, size_t len_result,
 key_shake::key_shake(void) {
     if (check_avx512()) {
         // Use the AVX-512 version
-        num_track_ = 8;
-        num_log_track_ = 3;
-        do_avx512 = true;
+        do_avx512 = do_avx512_verify = true;
+        num_track_ = num_track_verify_ = 8;
+        num_log_track_ = num_log_track_verify_ = 3;
     } else {
         // Use the AVX-2 version
-        num_track_ = 4;
-        num_log_track_ = 2;
-        do_avx512 = false;
+        do_avx512 = do_avx512_verify = false;
+        num_track_ = num_track_verify_ = 4;
+        num_log_track_ = num_log_track_verify_ = 2;
     }
 }
 

@@ -143,7 +143,7 @@ Some comments:
   to be the ones with multiple cores available); we also assume that
   AVX2, AES_NI and RDRAND instructions are available, and that plenty of
   memory is available.
-- The version in this branch supports AVX-512 instructions, if available.
+- The version in this branch supports AVX-512F instructions, if available.
   It checks, and will fall back to AVX-2 instructions if they're not.
 - The API doesn't follow the NIST conventions; the NIST API is less than
   ideal (in my view), and since I wasn't required to follow it, I designed
@@ -216,22 +216,26 @@ Some comments:
   a single thread with one operation).  For SHA-256, it increases the
   number of hashes per thread from 8 to 16; for SHA-512 and SHAKE-256,
   it increases it from 4 to 8.  Subnotes:
-  - AVX-512 is not supported for the SHA2-128F, SHA2-192F parameter sets;
-    if you use those parameter sets, it'll use AVX-2 always. That's because 
-    of how this implementation works internally; for SHA2, AVX-512 wants to
+  - By AVX-512, it means the Foundation instruction set, that is, the
+    subset that is implemented on all AVX-512 capable CPUs.  There are
+    a number of optional instruction sets; we don't use them.
+  - AVX-512 is not supported for the key generation and signing of the
+    SHA2-128F, SHA2-192F parameter sets; if you do those operations on
+    those parameter sets, it'll use AVX-2 instead. That's because of how
+    this implementation works internally; for SHA2, AVX-512 wants to
     evaluate 16 WOTS+ roots at once for a Merkle tree; for those parameter 
     sets, there are only 8 per Merkle tree, and that messes up the logic
     (and tweaking the logic would be more work than it's worth).  Now,
-    for verification, AVX-512 would work, even for those parameter sets;
-    maybe that's something we can support in the future.
+    verification does not compute Merkle trees, and hence we can use
+    AVX-512 on all parameter set (CPU willing, of course).
   - The code contains AVX-512 implementations of SHA-256, SHA-512 and
     SHAKE-256.  However, the SHAKE-256 implementation is peculiar; instead
     of treating all 1600 state bits the same (which is standard for Keccak
-    implementations), it separates out the rate and capacility bits.
-    Because of this, it is specific for SHAKE-256 (with rate=1088);
-    changing it to do SHA3-256 would be easy (change the padding, and
-    squeeze out only 256 bits); anything else would involve real code
-    changes.
+    implementations), it separates out the rate and capacility bits for
+    performance reasons.  Because of this, it is specific for SHAKE-256
+    (with rate=1088); changing it to do SHA3-256 would be easy (change
+    the padding, and squeeze out only 256 bits); anything else would
+    involve real code changes.
 
 Design decisions:
   - I made the API using C++, rather than C; that provides us options

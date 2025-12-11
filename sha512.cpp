@@ -42,7 +42,7 @@ const unsigned SHA512_S_SIZE = 8;
 const unsigned SHA512_K_SIZE = 80;
 const unsigned SHA512_FINALCOUNT_SIZE = 16;
 
-static const uint64_t K[SHA512_K_SIZE] = {
+const uint64_t SHA512_RC[SHA512_K_SIZE] = {
     0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL, 
     0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
     0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL, 
@@ -134,7 +134,7 @@ void SHA512_CTX::compress(const unsigned char *buf) {
 
     /* Compress */
     for (unsigned i = 0; i < SHA512_K_SIZE; i++) {
-        t0 = S[7] + Sigma1(S[4]) + Ch(S[4], S[5], S[6]) + K[i] + W[i];
+        t0 = S[7] + Sigma1(S[4]) + Ch(S[4], S[5], S[6]) + SHA512_RC[i] + W[i];
         t1 = Sigma0(S[0]) + Maj(S[0], S[1], S[2]);
         S[7] = S[6];
         S[6] = S[5];

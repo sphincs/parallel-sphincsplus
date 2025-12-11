@@ -16,7 +16,7 @@ void shake256_4x_inc_init(SHAKE256_4X_CTX *ctx) {
     ctx->index = 0;
 }
 
-const int rate = 136;   // For SHAKE256
+const int rate = 136;   // Specific to SHAKE256 (and SHA3-256)
 void shake256_4x_inc_absorb(SHAKE256_4X_CTX* ctx,
                             const uint8_t *input0,
                             const uint8_t *input1,

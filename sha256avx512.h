@@ -15,7 +15,7 @@ class SHA256_16x_CTX {
     int datalen;                      //<! How much data is in msgblocks
                                       //<! (per lane)
     unsigned long long msglen;        //<! The amount of data hashed, in bits
-                                      //<! Does not include what's msgblocks
+                                      //<! Does not include what's in msgblocks
     void transform(const unsigned char *data); //<! Perform a hash compression
                                       //<! operation
 public:
@@ -24,12 +24,12 @@ public:
 
     /// Create a 16x SHA-256 hasher, and initialize all lanes to the
     /// given SHA-256 state (which is the state extracted from a SHA-256
-    /// hash after hashing a multiple of 64 bytes of image);  msglen is
-    /// the amount of data already hashed in bits, and so 1 SHA-256 block
-    /// is 512.
-    SHA256_16x_CTX(uint32_t *s, unsigned long long msglen);
+    /// hash after hashing a multiple of 64 bytes of image);  num_blocks
+    /// is the number of blocks that were in the prehash
+    SHA256_16x_CTX(uint32_t *s, unsigned num_blocks);
 
-    /// Add 16 messages to the 16 different lanes
+    /// Add 16 new sections to the 16 messages being hashed by the 16
+    /// different lanes
     void update(unsigned char *d[16], unsigned long long len);
 
     /// Finalize all 16 hashes and output them to the 16 different out buffers

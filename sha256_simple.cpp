@@ -11,7 +11,8 @@
 namespace slh_dsa {
 
 /**
- * The SHA-2 version of thash
+ * The SHA-256 version of thash.  For SHA-2 L3 or L5 parameter sets, we
+ * use a SHA-512 version for inblocks > 1
  */
 void key_sha2::thash( unsigned char *out,
              const unsigned char *in,
@@ -42,7 +43,7 @@ void key_sha2::thash_xn(unsigned char **out,
     int n = len_hash();
 
     if (do_avx512) {
-        SHA256_16x_CTX ctx( state_seeded, 512 );
+        SHA256_16x_CTX ctx( state_seeded, 1 );
 
         unsigned char *pointer[16];
         for (int i=0; i<16; i++) {

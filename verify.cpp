@@ -43,6 +43,10 @@ success_flag key::verify_internal(
 
     size_t n = len_hash();
 
+    // We're doing a verify
+    // This will take us out of verify mode when verify_internal completes
+    switch_to_verify verify_mode( *this );
+
     // Step 1: lay out where the various components of the signature are
     struct signature_geometry geo;
 
@@ -145,7 +149,7 @@ success_flag key::verify_internal(
         }
 
         addr_t wots_addr[max_track];
-        memset(wots_addr, 0, track*32);
+        memset(wots_addr, 0, track * sizeof (addr_t));
         for (unsigned j=0; j<track; j++) {
             set_type(wots_addr[j], ADDR_TYPE_WOTS);
             set_layer_addr(wots_addr[j], tree);

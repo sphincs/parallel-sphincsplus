@@ -51,8 +51,7 @@ void key_sha2_L35::thash_xn(unsigned char **out,
     if (do_avx512) {
         unsigned char outbuff[16][64];
         for (int i=0; i<16; i+=8) {
-            SHA512_8x_CTX ctx;
-            ctx.init_frombytes(state_seeded_512, 1024);
+            SHA512_8x_CTX ctx(state_seeded_512, 1);
             unsigned char *pointer[8];
             for (int j=0; j<8; j++) {
                 pointer[j] = const_cast<unsigned char*>(addrx[i+j]);

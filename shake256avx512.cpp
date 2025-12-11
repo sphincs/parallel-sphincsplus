@@ -3,6 +3,7 @@
 #include <cstring>
 #include "immintrin.h"
 #include "shake256avx512.h"
+#include "fips202.h"     /* For KeccakF_RoundConstants */
 
 namespace slh_dsa {
 
@@ -26,22 +27,6 @@ typedef __m512i u512;
 // it assumes a rate of 1088, which is what SHAKE-256 (and SHA3-256) uses.
 // Changing this for different rates would be nontrivial
 
-/* Keccak round constants */
-static const uint64_t KeccakF_RoundConstants[24] = {
-    0x0000000000000001ULL, 0x0000000000008082ULL,
-    0x800000000000808aULL, 0x8000000080008000ULL,
-    0x000000000000808bULL, 0x0000000080000001ULL,
-    0x8000000080008081ULL, 0x8000000000008009ULL,
-    0x000000000000008aULL, 0x0000000000000088ULL,
-    0x0000000080008009ULL, 0x000000008000000aULL,
-    0x000000008000808bULL, 0x800000000000008bULL,
-    0x8000000000008089ULL, 0x8000000000008003ULL,
-    0x8000000000008002ULL, 0x8000000000000080ULL,
-    0x000000000000800aULL, 0x800000008000000aULL,
-    0x8000000080008081ULL, 0x8000000000008080ULL,
-    0x0000000080000001ULL, 0x8000000080008008ULL
-};
-
 //
 // Utility to xor in dest into src
 static void memxor( unsigned char *dest,
@@ -63,9 +48,9 @@ static void memxor( unsigned char *dest,
 
 #define ROL(x, y) _mm512_rol_epi64(x, y)
 
-#define AT  _MM_TERNLOG_A
-#define BT  _MM_TERNLOG_B
-#define CT  _MM_TERNLOG_C
+static const int AT = 0xf0;        // Selection masks for the ternary logic instruction
+static const int BT = 0xcc;
+static const int CT = 0xaa;
 
 static void convert_rate_into_avx_format( u512 m[17], unsigned char in[8][136] ) {
 
@@ -202,9 +187,9 @@ static void convert_avx_format_into_rate( unsigned char out[8][136], u512 m[17] 
     }
 }
 
-void SHAKE256_8x_CTX::init(void) {
+SHAKE256_8x_CTX::SHAKE256_8x_CTX(void) {
     cur = 0;                   /* We're starting at the beginning */
-    initial = 1;               /* We haven't permutted yet */
+    initial = true;            /* We haven't permutted yet */
     phase = absorbing;
 }
 
@@ -246,16 +231,19 @@ void SHAKE256_8x_CTX::update(unsigned char *d[8], unsigned len) {
 // haven't been touched 
 void SHAKE256_8x_CTX::reset_initial(void) {
     if (!initial) return;
+
+    // clear out the rate bytes that haven't been set
     for (int lane=0; lane<8; lane++) {
         memset( &s[lane][cur], 0, rate - cur );
     }
-    initial = 0;
 
     // Clear out the capacity
     u512 zero = _mm512_set1_epi64(0);
     for (unsigned j=0; j < capacity; j++) {
         cap[j] = zero;
     }
+
+    initial = false;
 }
 
 void SHAKE256_8x_CTX::squeeze(unsigned char *out[8], unsigned len) {

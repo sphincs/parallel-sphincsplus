@@ -410,12 +410,15 @@ protected:
                     leaf_gen& leaf,
                     addr_t* tree_addrxn);
 
+    bool do_avx512, do_avx512_verify;
+
     /// This is the number of hashes we can compute in parallel
-    unsigned num_track_;
+    unsigned num_track_, num_track_verify_;
     unsigned num_track(void) { return num_track_; }
     /// This is the log2 of the number of hashes we can compute in parallel
-    unsigned num_log_track_;
+    unsigned num_log_track_, num_log_track_verify_;
     unsigned num_log_track(void) { return num_log_track_; }
+    friend class switch_to_verify;
 
     // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
@@ -693,10 +696,39 @@ public:
 };
 
 ///
+/// Creating this object will switch the key into verify mode (and undo it when
+/// the object goes out of scope).  The idea is that the verify code would
+/// create a switch_to_verify object at the top (which would make things
+/// appropriate for verify); when the verify is done, the destructor is called
+/// which returns things to normal
+///
+/// This is here because there are a few parameter sets where we can't do
+/// AVX-512 operations on key gen or signing, but we can on verification
+class switch_to_verify {
+    key& k;
+    bool prev_do_avx512;
+    unsigned prev_num_track_;
+    unsigned prev_num_log_track_;
+    switch_to_verify( key& ky ) : k(ky) {
+        prev_do_avx512 = k.do_avx512;
+        k.do_avx512 = k.do_avx512_verify;
+        prev_num_track_ = k.num_track_;
+        k.num_track_ = k.num_track_verify_;
+        prev_num_log_track_ = k.num_log_track_;
+        k.num_log_track_ = k.num_log_track_verify_;
+    } 
+    ~switch_to_verify(void) {
+        k.do_avx512 = prev_do_avx512;
+        k.num_track_ = prev_num_track_;
+        k.num_log_track_ = prev_num_log_track_;
+    }
+    friend class key;  // This class is the only one that can create this
+};
+
+///
 /// This abstract class is for SHA2-based parameter sets
 class key_sha2 : public key {
 protected:
-    bool do_avx512;
     virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
                        size_t d, size_t wots_digits );
 
@@ -741,7 +773,6 @@ public:
 
 /// This abstract class is for SHAKE-based parameter sets
 class key_shake : public key {
-    bool do_avx512;
 protected:
     key_shake(void);
 

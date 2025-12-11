@@ -51,7 +51,7 @@ void key_sha2::prf_addr_xn(unsigned char **out,
     const unsigned char* key = get_secret_seed();
 
     if (do_avx512) {
-        SHA256_16x_CTX ctx( state_seeded, 512 );
+        SHA256_16x_CTX ctx( state_seeded, 1 );
 
         unsigned char *pointer[16];
         for (int i=0; i<16; i++) {
@@ -224,21 +224,30 @@ key_sha2::key_sha2(void) {
     offset_tree_index = 18;
 
     // and reset the default number of tracks to assume no AVX-512
-    do_avx512 = false;
-    num_track_ = 8;
-    num_log_track_ = 3;
+    // We may update it later when we learn the parameter set
+    do_avx512 = do_avx512_verify = false;
+    num_track_ = num_track_verify_ = 8;
+    num_log_track_ = num_log_track_verify_ = 3;
 }
 
 //
 // This is here because whether we can do AVX-512 depends on the SLH-DSA
-// parameter sets - we can't if the Merkle trees are of height 3
+// parameter sets - we can't sign or key gen if the Merkle trees are of
+// height 3
 void key_sha2::set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
                        size_t d, size_t wots_digits ) {
     key::set_geometry( len_hash, k, t, h, d, wots_digits );
-    if (h > 3*d && check_avx512()) {
-        do_avx512 = true;
-        num_track_ = 16;
-        num_log_track_ = 4;
+
+    // Check for AVX-512 support
+    if (check_avx512()) {
+        do_avx512_verify = true;   // AVX-512 supported; we can verify with
+        num_track_verify_ = 16;    // it, for all parameter sets
+        num_log_track_verify_ = 4;
+        if (h > 3*d) {
+            do_avx512 = true;      // The Merkle trees are bigger than 3
+            num_track_= 16;        // We can use AVX-512 for all operations
+            num_log_track_ = 4;
+        }
     }
 }
 

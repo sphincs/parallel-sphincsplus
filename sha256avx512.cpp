@@ -7,29 +7,11 @@
 #include <stdint.h>
 
 #include "sha256avx512.h"
+#include "sha256.h"   /* For SHA256_RC */
 
 namespace slh_dsa {
 
 typedef __m512i u512;
-
-static const uint32_t RC[] = {
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-};
 
 static u512 ADD32( u512 a, u512 b ) { return _mm512_add_epi32( a, b ); }
 
@@ -38,9 +20,9 @@ static u512 SHIFTR32( u512 x, int y) { return _mm512_srli_epi32(x, y); }
 static u512 ROTR32( u512 x, int y) { return _mm512_rol_epi32(x, 32-y); }
 static u512 ROTL32( u512 x, int y) { return _mm512_rol_epi32(x, y); }
 
-#define AT  _MM_TERNLOG_A   // To reduce typing
-#define BT  _MM_TERNLOG_B
-#define CT  _MM_TERNLOG_C
+static const int AT = 0xf0;        // Selection masks for the ternary logic instruction
+static const int BT = 0xcc;
+static const int CT = 0xaa;
 
 static u512 XOR3(u512 a, u512 b, u512 c) { return _mm512_ternarylogic_epi64(a,b,c,AT^BT^CT); }
 
@@ -57,7 +39,7 @@ static u512 WSIGMA1_AVX(u512 x) { return XOR3(ROTR32(x, 17), ROTR32(x, 19), SHIF
 static u512 WSIGMA0_AVX(u512 x) { return XOR3(ROTR32(x, 7), ROTR32(x, 18), SHIFTR32(x, 3)); }
 
 #define SHA256ROUND_AVX(a, b, c, d, e, f, g, h, rc, round) \
-    T0 = ADD5_32(h, SIGMA1_AVX(e), CH_AVX(e, f, g), _mm512_set1_epi32(RC[rc]), w[round & 15]); \
+    T0 = ADD5_32(h, SIGMA1_AVX(e), CH_AVX(e, f, g), _mm512_set1_epi32(SHA256_RC[rc]), w[round & 15]); \
     d = ADD32(d, T0); \
     T1 = ADD32(SIGMA0_AVX(a), MAJ_AVX(a, b, c)); \
     h = ADD32(T0, T1);
@@ -226,7 +208,7 @@ static void untranspose_and_byteswap( unsigned char **out, u512 m[8] ) {
     }
 }
 
-SHA256_16x_CTX::SHA256_16x_CTX(uint32_t *in, unsigned long long mlen) {
+SHA256_16x_CTX::SHA256_16x_CTX(uint32_t *in, unsigned num_blocks) {
 
     for (size_t i = 0; i < 8; i++) {
         uint64_t t = in[i] * 0x100000001;
@@ -234,7 +216,7 @@ SHA256_16x_CTX::SHA256_16x_CTX(uint32_t *in, unsigned long long mlen) {
     }
 
     datalen = 0;
-    msglen = mlen;
+    msglen = 512*num_blocks;  // Each block is 512 bits
 }
 
 SHA256_16x_CTX::SHA256_16x_CTX(void) {
@@ -286,17 +268,13 @@ void SHA256_16x_CTX::final(unsigned char *out[16]) {
         for (i = 0; i < 16; ++i) {
             curlen = datalen;
             msgblocks[64*i + curlen++] = 0x80;
-            while(curlen < 64) {
-                msgblocks[64*i + curlen++] = 0x00;
-            }
+            memset( &msgblocks[64*i + curlen], 0, 64 - curlen );
         }
     } else {
         for (i = 0; i < 16; ++i) {
             curlen = datalen;
             msgblocks[64*i + curlen++] = 0x80;
-            while(curlen < 64) {
-                msgblocks[64*i + curlen++] = 0x00;
-            }
+            memset( &msgblocks[64*i + curlen], 0, 64 - curlen );
         }
         transform(msgblocks);
         memset(msgblocks, 0, 16 * 64);
@@ -304,16 +282,19 @@ void SHA256_16x_CTX::final(unsigned char *out[16]) {
 
     // Add length of the message to each block
     msglen += datalen * 8;
+    unsigned char b_msglen[8];
+    b_msglen[0] = msglen >> 56;
+    b_msglen[1] = msglen >> 48;
+    b_msglen[2] = msglen >> 40;
+    b_msglen[3] = msglen >> 32;
+    b_msglen[4] = msglen >> 24;
+    b_msglen[5] = msglen >> 16;
+    b_msglen[6] = msglen >> 8;
+    b_msglen[7] = msglen;
     for (i = 0; i < 16; i++) {
-        msgblocks[64*i + 63] = msglen;
-        msgblocks[64*i + 62] = msglen >> 8;
-        msgblocks[64*i + 61] = msglen >> 16;
-        msgblocks[64*i + 60] = msglen >> 24;
-        msgblocks[64*i + 59] = msglen >> 32;
-        msgblocks[64*i + 58] = msglen >> 40;
-        msgblocks[64*i + 57] = msglen >> 48;
-        msgblocks[64*i + 56] = msglen >> 56;
+        memcpy( &msgblocks[64*i + 56 ], b_msglen, 8 );
     }
+
     transform(msgblocks);
 
     // Compute final hash output and store the final hash values
