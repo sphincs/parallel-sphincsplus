@@ -11,3 +11,8 @@ The specific features that this implements (that the reference code doesn't):
 It does assume that you have the AVX2 and AES_NI instructions available, as well as the Posix multithreading API - if not, well, I'll refer you to the reference code...
 
 If you're looking for an implementation of the Sphincs+ round 3 code, check out the consistent-basew branch
+
+Interesting branches:
+- fault  - Attempts to protect against fault attacks (by performing the critical computations twice and comparing)
+- sfluhrer-avx-512 - Uses the AVX-512 instruction set to accelerate things (if available, if not, it falls back to AVX-2)
+- dwarf   - Adds support for the proposed rls128cs1, rls192cs1, rls256cs1 parameter sets (both SHA2 and SHAKE)
