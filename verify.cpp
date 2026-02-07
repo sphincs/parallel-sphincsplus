@@ -144,7 +144,7 @@ success_flag key::verify_internal(
         struct digit d_array[max_wots_digits];
         for (unsigned i=0; i<wots_digits(); i++) {
             d_array[i].index = lengths[i];   // Chains start at the wots digit
-            d_array[i].count = (wots_w-1)-lengths[i];  // Each chain goes up
+            d_array[i].count = (w()-1)-lengths[i];  // Each chain goes up
                                              // to digit wots_w-1
         }
 

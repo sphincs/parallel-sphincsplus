@@ -141,6 +141,8 @@ private:
     size_t t_;
     size_t h_;
     size_t d_;
+    size_t w_;
+    size_t log_w_;
     size_t wots_digits_;
     size_t merkle_height_;
     size_t wots_bytes_;
@@ -230,6 +232,8 @@ protected:
     size_t t(void) { return t_; }  //<! Depth of each FORS tree
     size_t h(void) { return h_; }  //<! Total height of hypertree
     size_t d(void) { return d_; }  //<! Number of Merkle trees in hypertree
+    size_t w(void) { return w_; }  //<! The Wintenitz factor
+    size_t log_w(void) { return log_w_; } //<! Bits per Winternitz digit
     size_t wots_digits(void) { return wots_digits_; } //<! Number of WOTS digits
     size_t merkle_height(void) { return merkle_height_; } //<! Height of each
                                    //<! Merkle tree
@@ -255,7 +259,7 @@ protected:
     /// FORS trees and Merkle trees) this parameter set will be using
     /// It should be called only during construction
     virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
-                       size_t d, size_t wots_digits );
+                       size_t d, size_t wots_digits, size_t log_w = 4 );
     /// We're implementing a 128S parameter set
     void set_128s(void) { set_geometry( 16, 14, 12, 63,  7, 35 ); }
     /// We're implementing a 128F parameter set
@@ -268,6 +272,12 @@ protected:
     void set_256s(void) { set_geometry( 32, 22, 14, 64,  8, 67 ); }
     /// We're implementing a 256F parameter set
     void set_256f(void) { set_geometry( 32, 35,  9, 68, 17, 67 ); }
+    /// We're implementing a rls128cs1 parameter set
+    void set_rls128cs1(void) { set_geometry( 16, 6, 24, 22, 1, 68, 2 ); }
+    /// We're implementing a rls192cs1 parameter set
+    void set_rls192cs1(void) { set_geometry( 24, 9, 25, 21, 1, 67, 3 ); }
+    /// We're implementing a rls256cs1 parameter set
+    void set_rls256cs1(void) { set_geometry( 32,12, 25, 21, 1, 133, 2 ); }
 
     /// Generate a WOTS signature within the SLH-DSA signature
     /// @param[out] sig Where to place the signature
@@ -730,7 +740,7 @@ class switch_to_verify {
 class key_sha2 : public key {
 protected:
     virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
-                       size_t d, size_t wots_digits );
+                       size_t d, size_t wots_digits, size_t log_w );
 
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
@@ -846,6 +856,12 @@ public:
     key_sha2_128s(void) { set_128s(); }
 };
 
+/// The class for keys with the SHA2 rls128cs1 parameter set
+class key_sha2_rls128cs1 : public key_sha2 {
+public:
+    key_sha2_rls128cs1(void) { set_rls128cs1(); }
+};
+
 /// The class for keys with the SHA2 192F parameter set
 class key_sha2_192f : public key_sha2_L35 {
 public:
@@ -856,6 +872,12 @@ public:
 class key_sha2_192s : public key_sha2_L35 {
 public:
     key_sha2_192s(void) { set_192s(); }
+};
+
+/// The class for keys with the SHA2 rls192cs1 parameter set
+class key_sha2_rls192cs1 : public key_sha2_L35 {
+public:
+    key_sha2_rls192cs1(void) { set_rls192cs1(); }
 };
 
 /// The class for keys with the SHA256 256F parameter set
@@ -870,6 +892,12 @@ public:
     key_sha2_256s(void) { set_256s(); }
 };
 
+/// The class for keys with the SHA2 rls256cs1 parameter set
+class key_sha2_rls256cs1 : public key_sha2_L35 {
+public:
+    key_sha2_rls256cs1(void) { set_rls256cs1(); }
+};
+
 /// The class for keys with the SHAKE 128F parameter set
 class key_shake_128f : public key_shake {
 public:
@@ -880,6 +908,12 @@ public:
 class key_shake_128s : public key_shake {
 public:
     key_shake_128s(void) { set_128s(); }
+};
+
+/// The class for keys with the SHAKE rls128cs1 parameter set
+class key_shake_rls128cs1 : public key_shake {
+public:
+    key_shake_rls128cs1(void) { set_rls128cs1(); }
 };
 
 /// The class for keys with the SHAKE 192F parameter set
@@ -894,6 +928,12 @@ public:
     key_shake_192s(void) { set_192s(); }
 };
 
+/// The class for keys with the SHAKE rls192cs1 parameter set
+class key_shake_rls192cs1 : public key_shake {
+public:
+    key_shake_rls192cs1(void) { set_rls192cs1(); }
+};
+
 /// The class for keys with the SHAKE 256F parameter set
 class key_shake_256f : public key_shake {
 public:
@@ -904,6 +944,12 @@ public:
 class key_shake_256s : public key_shake {
 public:
     key_shake_256s(void) { set_256s(); }
+};
+
+/// The class for keys with the SHAKE rls256cs1 parameter set
+class key_shake_rls256cs1 : public key_shake {
+public:
+    key_shake_rls256cs1(void) { set_rls256cs1(); }
 };
 
 }  /* namespace slh_dsa */

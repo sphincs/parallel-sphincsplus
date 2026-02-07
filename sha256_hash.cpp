@@ -235,8 +235,8 @@ key_sha2::key_sha2(void) {
 // parameter sets - we can't sign or key gen if the Merkle trees are of
 // height 3
 void key_sha2::set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
-                       size_t d, size_t wots_digits ) {
-    key::set_geometry( len_hash, k, t, h, d, wots_digits );
+                       size_t d, size_t wots_digits, size_t log_w ) {
+    key::set_geometry( len_hash, k, t, h, d, wots_digits, log_w );
 
     // Check for AVX-512 support
     if (check_avx512()) {

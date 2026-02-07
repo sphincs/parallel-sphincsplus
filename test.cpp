@@ -12,8 +12,15 @@ static bool my_rand( void *target, size_t len ) {
 }
 
 int main(void) {
-    class sphincs_plus::key_sha256_192s_simple foo;
-//    class sphincs_plus::key_sha256_192f_simple foo;
+//    class slh_dsa::key_sha2_rls128cs1 foo;
+//    class slh_dsa::key_sha2_rls192cs1 foo;
+//    class slh_dsa::key_sha2_rls256cs1 foo;
+//    class slh_dsa::key_shake_rls128cs1 foo;
+//    class slh_dsa::key_shake_rls192cs1 foo;
+    class slh_dsa::key_shake_rls256cs1 foo;
+//    class slh_dsa::key_sha2_192s foo;
+//    class sphincs_plus::key_sha2_192f foo;
+//    class sphincs_plus::key_sha2_192f foo;
 //    foo.set_num_thread(1);
 
     size_t len_pub_key = foo.len_public_key();

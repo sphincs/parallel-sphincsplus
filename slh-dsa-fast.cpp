@@ -11,13 +11,15 @@ namespace slh_dsa {
 // Register the SLH-DSA geometry
 // We expect that this is called only during construction
 void key::set_geometry( size_t len_hash, size_t k, size_t t,
-                       size_t h, size_t d, size_t wots_digits ) {
+                       size_t h, size_t d, size_t wots_digits, size_t log_w ) {
 
     len_hash_ = len_hash;;
     k_ = k;
     t_ = t;
     h_ = h;
     d_ = d;
+    w_ = 1 << log_w;
+    log_w_ = log_w;
     wots_digits_ = wots_digits;
     merkle_height_ = h/d;
     wots_bytes_ = len_hash * wots_digits;

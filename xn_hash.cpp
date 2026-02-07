@@ -398,7 +398,7 @@ void gen_wots_leaves::operator()(unsigned char* dest, uint32_t leaf_idx) {
 	}
 
         /* Iterate down the WOTS chain */
-        for (unsigned z=0; z < wots_w-1; z++) {
+        for (unsigned z=0; z < k.w()-1; z++) {
 
             /* Iterate one step on all num_track chains */
             for (j = 0; j < num_track; j++) {

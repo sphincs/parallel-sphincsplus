@@ -10,19 +10,19 @@
 namespace slh_dsa {
 
 // Various constants that are used internally (but needn't be published in api.h)
-const int wots_w = 16;      //<! All parameter sets have w=16
 const int max_len_hash = 32; //<! The largest len_hash we ever have
 const int max_fors_trees = 35; //<! The maximum number of FORS trees we have
                            //<! That's for the 256F parameter set
-const int max_merkle_tree_height = 14; //<! The deepest tree we ever have
-                           //<! That's the FORS trees within 192S and 256S
+const int max_merkle_tree_height = 25; //<! The deepest tree we ever have
+                           //<! That's the FORS trees within rls192cs1 and rls256c1
 const int max_merkle_tree = 22; //<! The maximum number of Merkle trees we have
                            //<! That's for the 128F and 192F parameter sets
 const int max_len_h_msg = 49; //<! The maximum number of bytes we need from
                            //<! h_msg; for 256F, that's 40 bytes for the FORS
                            //<! trees, 8 bytes for which bottom Merkle tree
                            //<! and 1 byte for the leaf of the bottom tree
-const int max_wots_digits = 67; //<! Maximum number of digits
+const int max_w = 16;      //<! Maximum Winternitz factor we support
+const int max_wots_digits = 133; //<! Maximum number of digits
 const int max_wots_bytes = max_len_hash * max_wots_digits; //<! The maximum
                            //<! size of a WOTS+ value
 const int addr_bytes = 32; //<! Standard addr structures are 32 bytes lon
@@ -112,6 +112,73 @@ struct signature_geometry {
     unsigned fors[ max_fors_trees ]; //<! Which FORS leafs are we revealing
     uint64_t idx_tree;          //<! Which bottom Merkle tree are we using
     unsigned idx_leaf;          //<! Which leaf of the bottom tree are we using
+};
+
+///
+/// This is a helper class that extracts bits fields from the h_msg
+/// output.  The individual bit fields will be used to select the
+/// various FORS trees and position within the hypertree
+class bit_extract {
+    unsigned char *p; /// Where we are in the string
+    size_t len;    /// Number of bytes remaining
+    unsigned bits_in_byte; /// Number of bits remaining in the current byte
+public:
+    /// Create a bit_extract object, extracting bits from input
+    /// @param[in] input  The buffer containing the input
+    /// @param[in] input_len The length of the input
+    bit_extract( unsigned char *input, size_t input_len ) {
+        p = input; len = input_len; bits_in_byte = 8;
+    }
+    /// Extract the next n bits from the buffer, crossing byte boundaries
+    /// if necessary.  This will also step the extractor to the next
+    /// position in the buffer
+    /// @param[in] bits Number of bits to extract
+    /// \return The extracted bit field
+    int extract_bits(unsigned bits) {
+        unsigned r = 0;
+        unsigned count_bits = 0;
+        while (bits >= bits_in_byte) {
+	    // The region we're extracting extends to the end of the byte
+	    // we're scanning; extract what's remaining, and add it to
+	    // the result (after shifting it into the correct position)
+            r |= *p++ << (bits - bits_in_byte);
+            count_bits += bits_in_byte;
+            bits -= bits_in_byte;
+            bits_in_byte = 8;
+        }
+        if (bits > 0) {
+	    // The region we're extracting ends in the middle of this byte
+	    // Set the mask to cover that reguin; add those to the result
+	    // (after shifting it to the correct position)
+            unsigned mask = ((1 << bits) - 1) << (bits_in_byte - bits);
+            r += (*p & mask) >> (bits_in_byte - bits);
+
+            bits_in_byte -= bits;
+
+	    // And remove those bits from the byte (so it doesn't interfere
+	    // with the next field we extract)
+	    *p &= ~mask;
+        }
+        return r;
+    }
+    /// Extract the next n bits from the buffer as an integer.  Note that
+    /// this actually reads the next ceil(bits/8) bytes, and ignores the
+    /// msbits if bits isn't a multiple of 8.  This is behavior distinct
+    /// from the extra_bits function - for whatever reason, SLH-DSA uses
+    /// this behavior to read the Merkle tree/Hypertree locations from
+    /// the bitstream
+    /// @param[in] bits Number of bits to extract
+    /// \return The extracted bit field
+    uint64_t extract_int(unsigned bits) {
+        int bytes = (bits + 7) / 8;  // Number of bytes to extract
+        uint64_t r = bytes_to_ull(p, bytes);
+        p += bytes;
+        bits_in_byte = 8;
+        return r & ((~(uint64_t)0) >> (64 - bits));
+    }
+    /// Skip to the next byte boundary
+    void round(void) { if (bits_in_byte != 8) {
+                           p++; len--; bits_in_byte = 8; } }
 };
 
 }

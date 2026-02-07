@@ -1,3 +1,4 @@
+#include <string.h>
 #include "api.h"
 #include "internal.h"
 
@@ -13,25 +14,89 @@ void key::chain_lengths(unsigned int *lengths,
     // Convert the msg values into nybbles
     int i, j;
     int n = len_hash();
-    int sum = 2*15*n;   // This will be the inverted sum
-    for (i=j=0; i<n; i++) {
-        unsigned char byte = msg[i];
-        unsigned char digit = byte >> 4;
-        lengths[j++] = digit;
-        sum -= digit;
-        digit = byte & 0xf;
-        lengths[j++] = digit;
-        sum -= digit;
+    switch (log_w()) {
+    case 4: {
+        int sum = 2*15*n;   // This will be the inverted sum
+        for (i=j=0; i<n; i++) {
+            unsigned char byte = msg[i];
+            unsigned char digit = byte >> 4;
+            lengths[j++] = digit;
+            sum -= digit;
+            digit = byte & 0xf;
+            lengths[j++] = digit;
+            sum -= digit;
+        }
+    
+        // And append the inverted checksum (which is 3 bytes in all our
+        // W=16 parameter sets)
+        int d = (sum >> 8) & 0x0f;
+        lengths[j++] = d;
+        d = (sum >> 4) & 0x0f;
+        lengths[j++] = d;
+        d = (sum     ) & 0x0f;
+        lengths[j  ] = d;
+        break;
     }
+    case 2: {
+        int sum = 4*3*n;   // This will be the inverted sum
+        for (i=j=0; i<n; i++) {
+            unsigned char byte = msg[i];
+            unsigned char digit = byte >> 6;
+            lengths[j++] = digit;
+            sum -= digit;
+            digit = (byte >> 4) & 3;
+            lengths[j++] = digit;
+            sum -= digit;
+            digit = (byte >> 2) & 3;
+            lengths[j++] = digit;
+            sum -= digit;
+            digit = (byte) & 3;
+            lengths[j++] = digit;
+            sum -= digit;
+        }
+    
+        // And append the inverted checksum (which is 4 or 6 bytes in our
+        // W=4 parameter sets)
+        int d;
+        if (n >= 24) {
+            d = (sum >> 8) & 0x03;
+            lengths[j++] = d;
+        }
+        d = (sum >> 6) & 0x03;
+        lengths[j++] = d;
+        d = (sum >> 4) & 0x03;
+        lengths[j++] = d;
+        d = (sum >> 2) & 0x03;
+        lengths[j++] = d;
+        d = (sum     ) & 0x03;
+        lengths[j  ] = d;
+        break;
+    }
+    case 3: {
+        unsigned char msg_buffer[ max_len_hash + 1 ];
+        memcpy( msg_buffer, msg, n );
+        msg_buffer[n] = 0;   // In case the parser goes past the end, which it
+                             // will for n=128, 256
+        bit_extract ext( msg_buffer, n+1 ); 
+        unsigned len = ((8*n+2)/3);
+        int sum = 7*len;
+        unsigned i;
+        for (i=0; i<len; i++) {
+            unsigned digit = ext.extract_bits(3);
+            lengths[i] = digit;
+            sum -= digit;
+        }
 
-    // And append the inverted checksum (which is 3 bytes in all our
-    // parameter sets)
-    int d = (sum >> 8) & 0x0f;
-    lengths[j++] = d;
-    d = (sum >> 4) & 0x0f;
-    lengths[j++] = d;
-    d = (sum     ) & 0x0f;
-    lengths[j  ] = d;
+        // And output the checksum digits
+        if (n == 256) {
+            lengths[i++] = (sum >> 9) & 0x7;
+        }
+        lengths[i++] = (sum >> 6) & 0x7;
+        lengths[i++] = (sum >> 3) & 0x7;
+        lengths[i]   = (sum     ) & 0x7;
+        break;
+    }
+    }
 }
 
 //
@@ -44,11 +109,11 @@ void key::chain_lengths(unsigned int *lengths,
 //
 void key::compute_chains(unsigned char *array,
                              struct digit *d_array, addr_t* addrx) {
-    int board[wots_w];   // This is the head of an array of linked lists of
+    int board[max_w];    // This is the head of an array of linked lists of
                          // digits that need to be advanced.  A digit that
                          // needs to be advanced k more times will be in
                          // the list headed by board[k]
-    int count[wots_w];   // The number of elements in each linked list
+    int count[max_w];    // The number of elements in each linked list
     int num_track = this->num_track(); // Number of digits we can advance at
                          //  once
     int digits = wots_digits();
@@ -56,7 +121,7 @@ void key::compute_chains(unsigned char *array,
     int i;
     const int eol = -1;  // -1 signifies 'end of list'
 
-    for (i=0; i<wots_w; i++) {   // Initialize the board as empty
+    for (i=0; i<(int)w(); i++) {   // Initialize the board as empty
         board[i] = eol;
         count[i] = 0;
     }
@@ -69,7 +134,7 @@ void key::compute_chains(unsigned char *array,
         count[c] += 1;
     }
 
-    int max_seen = wots_w;  // This will signify what level we have cleared
+    int max_seen = w();     // This will signify what level we have cleared
                             // off the board
     while (count[max_seen-1] == 0) max_seen--;
 
