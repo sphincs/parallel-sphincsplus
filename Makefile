@@ -27,7 +27,8 @@ HEADERS =         api.h internal.h sha256avx.h xn_internal.h \
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
 		  test_verify.cpp test_thread.cpp test_testvector_sign.cpp \
 		  test_testvector_keygen.cpp \
-		  test_sha512.cpp test_context.cpp test_avx512.cpp
+		  test_sha512.cpp test_context.cpp test_avx512.cpp \
+		  test_dwarf.cpp 
 
 TESTS = test test_slh_dsa
 

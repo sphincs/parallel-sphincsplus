@@ -618,7 +618,7 @@ public:
     ///            signature generation.  If omitted, this will fall back to
     ///            a default randomness generation function
     /// \return The unique_ptr containing the signature
-    std::unique_ptr<unsigned char[]> sign(
+    std::unique_ptr<unsigned char[]> sign_stl(
             const unsigned char *message, size_t len_message,
 	    const void *context = 0, size_t len_context = 0,
             const random& rand = rdrand_fill);
@@ -636,7 +636,7 @@ public:
     ///            signature generation.  If omitted, this will fall back to
     ///            a default randomness generation function
     /// \return The unique_ptr containing the signature
-    std::unique_ptr<unsigned char[]> sign(
+    std::unique_ptr<unsigned char[]> sign_stl(
             const unsigned char *message, size_t len_message,
 	    const hash_type& hash,
 	    const void *context = 0, size_t len_context = 0,

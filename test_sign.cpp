@@ -75,7 +75,7 @@ static bool sign2( slh_dsa::key& k,
                    const unsigned char *msg, size_t len_msg,
                    unsigned char *sig_buffer) {
     try {
-        auto sig = k.sign( msg, len_msg );
+        auto sig = k.sign_stl( msg, len_msg );
 	memcpy( sig_buffer, sig.get(), k.len_signature() );
 	return k.verify( sig_buffer, k.len_signature(), msg, len_msg );
     } catch(std::exception& e) {
@@ -87,7 +87,7 @@ static bool sign2( slh_dsa::key& k,
                    unsigned char *sig_buffer,
                    random_function rand ) {
     try {
-        auto sig = k.sign( msg, len_msg, 0, 0, rand );
+        auto sig = k.sign_stl( msg, len_msg, 0, 0, rand );
 	memcpy( sig_buffer, sig.get(), k.len_signature() );
 	return k.verify( sig_buffer, k.len_signature(), msg, len_msg );
     } catch(std::exception& e) {

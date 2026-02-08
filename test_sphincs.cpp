@@ -27,6 +27,7 @@ static struct {
     { "verify", test_verify, "signature verification test", true, 0 },
     { "thread", test_thread, "threading test", false, 0 },
     { "context", test_context, "context test", false, 0 },
+    { "rls", test_dwarf, "reduced parameter set test", true, disable_on_fast },
  /* Add more here */  
 };
 

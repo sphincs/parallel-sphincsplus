@@ -65,7 +65,7 @@ bool verify_test::run( slh_dsa::key& k, slh_dsa::key& v,
     // Generate a signature for a simple message
     static const unsigned char message[3] = { 'a', 'b', 'c' };
     size_t len_message = sizeof message;
-    auto sig = k.sign( message, len_message );
+    auto sig = k.sign_stl( message, len_message );
     unsigned char *s = sig.get();
 
     // Make sure that it verifies

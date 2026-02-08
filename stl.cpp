@@ -11,7 +11,7 @@
 
 namespace slh_dsa {
 
-std::unique_ptr<unsigned char[]> key::sign(
+std::unique_ptr<unsigned char[]> key::sign_stl(
         const unsigned char *message, size_t len_message,
 	const void *context, size_t len_context,
         const random& rand) {
@@ -37,7 +37,7 @@ std::unique_ptr<unsigned char[]> key::sign(
 }
 
 // And the prehash version
-std::unique_ptr<unsigned char[]> key::sign(
+std::unique_ptr<unsigned char[]> key::sign_stl(
         const unsigned char *message, size_t len_message,
 	const hash_type& hash,
 	const void *context, size_t len_context,
