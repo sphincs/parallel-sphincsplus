@@ -2,14 +2,12 @@
 
 ## A multithreaded implementation of the SLH-DSA signature algorithm
 
-This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205)
+This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205), as well as the reduced usage parameter set rls128cs1, rls192cs1, rls256cs1
 
-The specific features that this implements (that the reference code doesn't):
+Current issues:
 
-- It is multithreaded; that is, it can split the job of producing a signature over several threads
+- There are no known-answer-tests for the rls parameter sets (as no one has published them).  Hence, we just do 'self-consistency' tests, which is obviously very imperfect
 
-- It can support multiple parameter sets at once
+- It does not attempt to do parallelization during key generation - that would speed things up nicely.  Currently, on my computer, key generation takes about a minute
 
-It does assume that you have the AVX2 and AES_NI instructions available, as well as the Posix multithreading API - if not, well, I'll refer you to the reference code...
-
-If you're looking for an implementation of the Sphincs+ round 3 code, check out the consistent-basew branch
+- One obvious optimization for the rls parameter sets is to store some of the internal merkle nodes during key generation (to speed up signature generation).  This does not do that 
