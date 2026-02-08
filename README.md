@@ -10,4 +10,6 @@ Current issues:
 
 - It does not attempt to do parallelization during key generation - that would speed things up nicely.  Currently, on my computer, key generation takes about a minute
 
+- Even for the signing operation (which does use parallelism), it's not well balanced for the rls parameter sets
+
 - One obvious optimization for the rls parameter sets is to store some of the internal merkle nodes during key generation (to speed up signature generation).  This does not do that 
