@@ -25,8 +25,6 @@ typedef struct SHAKE256_4X_CTX {
 } SHAKE256_4X_CTX;
 
 void shake256_4x_inc_init(SHAKE256_4X_CTX* ctx);
-void shake256_4x_inc_init_from_precompute(SHAKE256_4X_CTX* ctx,
-                                       const SHAKE256_PRECOMPUTE* pre);
 void shake256_4x_inc_absorb(SHAKE256_4X_CTX* ctx,
                             const uint8_t *input0,
                             const uint8_t *input1,

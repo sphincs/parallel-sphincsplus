@@ -5,6 +5,7 @@
 #include "api.h"
 #include "internal.h"
 #include "sha512avx.h"
+#include "sha512avx512.h"
 #include "sha512.h"
 
 namespace slh_dsa {
@@ -34,49 +35,75 @@ void key_sha2_L35::thash( unsigned char *out,
 }
 
 /**
- * 8-way parallel version of thash; takes 8x as much input and output
+ * 8 or 16-way parallel version of thash; takes 8x or 16x as much input and output
  * Note that, for inblocks==1, the alternative f_xn function is used
+ *
+ * The caller assumes that this is a sponge; that is, it reads its input before
+ * it generates any output.  That is why we have the large internal buffers (outbuff,
+ * outbufx8)
  */
 void key_sha2_L35::thash_xn(unsigned char **out,
              unsigned char **in,
              unsigned int inblocks,
-             addr_t* addrx8) {
-    __m256i outbufx8[8][sha512_output_size / sizeof(__m256i)];
-    sha512ctx4x ctx;
-
+             addr_t* addrx) {
     int n = len_hash();
-    for (int i=0; i<8; i+=4) {
-        sha512_init_frombytes_x4(&ctx, state_seeded_512, 1024);
 
-        sha512_update4x(&ctx,
-                    &addrx8[i+0],
-                    &addrx8[i+1],
-                    &addrx8[i+2],
-                    &addrx8[i+3],
-                    sha256_addr_bytes );
+    if (do_avx512) {
+        unsigned char outbuff[16][64];
+        for (int i=0; i<16; i+=8) {
+            SHA512_8x_CTX ctx(state_seeded_512, 1);
+            unsigned char *pointer[8];
+            for (int j=0; j<8; j++) {
+                pointer[j] = const_cast<unsigned char*>(addrx[i+j]);
+            }
+            ctx.update(pointer, sha256_addr_bytes);
+            ctx.update(&in[i], inblocks * n);
 
-        sha512_update4x(&ctx,
-                    in[i+0],
-                    in[i+1],
-                    in[i+2],
-                    in[i+3],
-                    inblocks * n );
-
-        sha512_final4x(&ctx,
-                   outbufx8[i+0],
-                   outbufx8[i+1],
-                   outbufx8[i+2],
-                   outbufx8[i+3]);
+            for (int j=0; j<8; j++) {
+                pointer[j] = outbuff[i+j];
+            }
+            ctx.final(pointer);
+       }
+       for (int j=0; j<16; j++) {
+            memcpy(out[j], outbuff[j], n );
+       }
+    } else {
+        __m256i outbufx8[8][sha512_output_size / sizeof(__m256i)];
+        sha512ctx4x ctx;
+    
+        for (int i=0; i<8; i+=4) {
+            sha512_init_frombytes_x4(&ctx, state_seeded_512, 1024);
+    
+            sha512_update4x(&ctx,
+                        &addrx[i+0],
+                        &addrx[i+1],
+                        &addrx[i+2],
+                        &addrx[i+3],
+                        sha256_addr_bytes );
+    
+            sha512_update4x(&ctx,
+                        in[i+0],
+                        in[i+1],
+                        in[i+2],
+                        in[i+3],
+                        inblocks * n );
+    
+            sha512_final4x(&ctx,
+                       outbufx8[i+0],
+                       outbufx8[i+1],
+                       outbufx8[i+2],
+                       outbufx8[i+3]);
+        }
+    
+        memcpy(out[0], outbufx8[0], n);
+        memcpy(out[1], outbufx8[1], n);
+        memcpy(out[2], outbufx8[2], n);
+        memcpy(out[3], outbufx8[3], n);
+        memcpy(out[4], outbufx8[4], n);
+        memcpy(out[5], outbufx8[5], n);
+        memcpy(out[6], outbufx8[6], n);
+        memcpy(out[7], outbufx8[7], n);
     }
-
-    memcpy(out[0], outbufx8[0], n);
-    memcpy(out[1], outbufx8[1], n);
-    memcpy(out[2], outbufx8[2], n);
-    memcpy(out[3], outbufx8[3], n);
-    memcpy(out[4], outbufx8[4], n);
-    memcpy(out[5], outbufx8[5], n);
-    memcpy(out[6], outbufx8[6], n);
-    memcpy(out[7], outbufx8[7], n);
 }
 
 //

@@ -39,7 +39,7 @@ void key::chain_lengths(unsigned int *lengths,
 // positions as specified in the d_array
 // This uses our fancy parallelized thash function, making this nontrivial
 //
-// This will trash the d_array structures (which is OK, rhe callers don't
+// This will trash the d_array structures (which is OK, the callers don't
 // need it afterwards)
 //
 void key::compute_chains(unsigned char *array,
@@ -96,7 +96,7 @@ void key::compute_chains(unsigned char *array,
                                        // bottom
 
         // Ok, we've identified the lists.  Now, starting at the bottom list
-        // we identitied, move those lists down one (with the note that for
+        // we identified, move those lists down one (with the note that for
         // the first list we're moving, which is the bottom most list of the
         // scan, may be a partial move, as there might be more on that list
         // than what we can move

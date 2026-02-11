@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "sha256avx.h"
+#include "sha256.h"   /* For SHA256_RC */
 
 namespace slh_dsa {
 

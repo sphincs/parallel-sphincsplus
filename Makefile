@@ -9,20 +9,25 @@ SOURCES =         slh-dsa-fast.cpp sign.cpp xn_hash.cpp \
 		  verify.cpp stl.cpp prehash.cpp \
                   sha256_hash.cpp sha256_simple.cpp \
 		  sha256.cpp sha256avx.cpp \
-		  sha512_hash.cpp sha512.cpp mgf1_512_4x.cpp sha512avx.cpp \
+		  sha512_hash.cpp sha512.cpp sha512avx.cpp \
 		  sha512_simple.cpp \
                   shake256_hash.cpp shake256_simple.cpp \
 		  fips202.cpp fips202x4.cpp \
                   keccak4x/KeccakP-1600-times4-SIMD256.o \
 		  rdrand.cpp \
-                  wots.cpp geo.cpp address.cpp utils.cpp
+                  wots.cpp geo.cpp address.cpp utils.cpp \
+                  avx512.cpp sha256avx512.cpp sha512avx512.cpp \
+                  shake256avx512.cpp
 OBJECTS =         $(subst .cpp,.o,$(SOURCES))
+sha256avx512.o:   CFLAGS += -mavx512f
+sha512avx512.o:   CFLAGS += -mavx512f
+shake256avx512.o: CFLAGS += -mavx512f
 HEADERS =         api.h internal.h sha256avx.h xn_internal.h \
                   fips202.h fips202x4.h
 TEST_SOURCES =    test_sphincs.cpp test_keygen.cpp test_sign.cpp \
 		  test_verify.cpp test_thread.cpp test_testvector_sign.cpp \
 		  test_testvector_keygen.cpp \
-		  test_sha512.cpp test_context.cpp
+		  test_sha512.cpp test_context.cpp test_avx512.cpp
 
 TESTS = test test_slh_dsa
 

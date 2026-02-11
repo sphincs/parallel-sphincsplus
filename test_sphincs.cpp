@@ -19,6 +19,7 @@ static struct {
     bool (*test_enabled)(bool);        /* Check if this tests is enabled */
 } test_list[] = {
     { "sha512", test_sha512, "internal SHA-512 implementation test", false, 0 },
+    { "avx512", test_avx512, "AVX-512 hashing test", false, enable_avx512 },
     { "testkeygen", test_testvector_keygen, "keygen test vectors extracted from NIST", false, 0 },
     { "testsign", test_testvector_sign, "signature test vectors extracted from NIST", false, 0 },
     { "keygen", test_keygen, "key generation test", false, 0 },

@@ -96,14 +96,6 @@ struct digit;   // Used internally, some member functions refer to it
 struct signature_geometry; // Ditto
 
 ///
-/// A SHAKE256 intermediate state after some prefix has been hashed
-struct SHAKE256_PRECOMPUTE {
-    uint64_t s[25];   //<! The state of the SHAKE256 permutation
-    unsigned index;   //<! The byte index where we absorb the next byte
-    unsigned nonzero; //<! Number of nonzero (64 bit) words
-};
-
-///
 /// Abstract class used to generate num_track leaf nodes
 class leaf_gen {
 public:
@@ -128,6 +120,11 @@ struct hash_type {
 extern hash_type ph_sha256, ph_sha512;
 extern hash_type ph_shake128;  /// This has a 32 byte hash output
 extern hash_type ph_shake256;  /// This has a 64 byte hash output
+
+/// Routine to check for the existance of AVX-512F instructions
+/// The F indicates Foundational - we don't use any instructions in the
+/// more advanced instruction sets
+bool check_avx512(void);
 
 ///
 /// This is the base class for a SLH_DSA key (either public or private)
@@ -165,6 +162,8 @@ private:
            const void *context, size_t len_context,
            const void *oid, size_t len_oid,
            const void *message, size_t len_message );
+
+    bool can_avx512;
 
 public:
     enum sign_flag {
@@ -236,6 +235,7 @@ protected:
                                    //<! Merkle tree
     size_t wots_bytes(void) { return wots_bytes_; } //<! Length of a WOTS
                                    //<! signature
+    bool avx512(void) { return can_avx512; }
 
     const unsigned char *get_secret_seed(void); //<! Get the secret sauce we
                                    //<! use to generate our bottom level values
@@ -254,7 +254,7 @@ protected:
     /// These tell this object what geometry (e.g. the number and size of
     /// FORS trees and Merkle trees) this parameter set will be using
     /// It should be called only during construction
-    void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
+    virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
                        size_t d, size_t wots_digits );
     /// We're implementing a 128S parameter set
     void set_128s(void) { set_geometry( 16, 14, 12, 63,  7, 35 ); }
@@ -410,10 +410,15 @@ protected:
                     leaf_gen& leaf,
                     addr_t* tree_addrxn);
 
+    bool do_avx512, do_avx512_verify;
+
     /// This is the number of hashes we can compute in parallel
-    virtual unsigned num_track(void) = 0;
+    unsigned num_track_, num_track_verify_;
+    unsigned num_track(void) { return num_track_; }
     /// This is the log2 of the number of hashes we can compute in parallel
-    virtual unsigned num_log_track(void) = 0;
+    unsigned num_log_track_, num_log_track_verify_;
+    unsigned num_log_track(void) { return num_log_track_; }
+    friend class switch_to_verify;
 
     // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
@@ -691,9 +696,42 @@ public:
 };
 
 ///
+/// Creating this object will switch the key into verify mode (and undo it when
+/// the object goes out of scope).  The idea is that the verify code would
+/// create a switch_to_verify object at the top (which would make things
+/// appropriate for verify); when the verify is done, the destructor is called
+/// which returns things to normal
+///
+/// This is here because there are a few parameter sets where we can't do
+/// AVX-512 operations on key gen or signing, but we can on verification
+class switch_to_verify {
+    key& k;
+    bool prev_do_avx512;
+    unsigned prev_num_track_;
+    unsigned prev_num_log_track_;
+    switch_to_verify( key& ky ) : k(ky) {
+        prev_do_avx512 = k.do_avx512;
+        k.do_avx512 = k.do_avx512_verify;
+        prev_num_track_ = k.num_track_;
+        k.num_track_ = k.num_track_verify_;
+        prev_num_log_track_ = k.num_log_track_;
+        k.num_log_track_ = k.num_log_track_verify_;
+    } 
+    ~switch_to_verify(void) {
+        k.do_avx512 = prev_do_avx512;
+        k.num_track_ = prev_num_track_;
+        k.num_log_track_ = prev_num_log_track_;
+    }
+    friend class key;  // This class is the only one that can create this
+};
+
+///
 /// This abstract class is for SHA2-based parameter sets
 class key_sha2 : public key {
 protected:
+    virtual void set_geometry( size_t len_hash, size_t k, size_t t, size_t h,
+                       size_t d, size_t wots_digits );
+
     /// This precomputes the intermediate state of the public seed (so
     /// we don't have to recompute it everytime we need it).
     /// This is called whenever we update the public key (which includes
@@ -727,9 +765,6 @@ protected:
     /// The prehashed public seed
     uint32_t state_seeded[8];
 
-    virtual unsigned num_track(void);
-    virtual unsigned num_log_track(void);
-
     key_sha2(void);
 public:
     virtual void set_public_key(const unsigned char *public_key);
@@ -739,10 +774,7 @@ public:
 /// This abstract class is for SHAKE-based parameter sets
 class key_shake : public key {
 protected:
-    SHAKE256_PRECOMPUTE pre_pub_seed;  //!< The prehashed public seed
-
-    virtual unsigned num_track(void);
-    virtual unsigned num_log_track(void);
+    key_shake(void);
 
     virtual void prf_addr_xn(unsigned char **out,
               const addr_t* addrxn);
@@ -764,9 +796,6 @@ protected:
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
              unsigned int inblocks, addr_t* addrxn);
-public:
-    virtual void set_public_key(const unsigned char *public_key);
-    virtual void set_private_key(const unsigned char *private_key);
 };
 
 // And the L3, L5 versions of the SHA2 parameter sets

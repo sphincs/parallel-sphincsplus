@@ -16,7 +16,7 @@ void shake256_4x_inc_init(SHAKE256_4X_CTX *ctx) {
     ctx->index = 0;
 }
 
-const int rate = 136;   // For SHAKE256
+const int rate = 136;   // Specific to SHAKE256 (and SHA3-256)
 void shake256_4x_inc_absorb(SHAKE256_4X_CTX* ctx,
                             const uint8_t *input0,
                             const uint8_t *input1,
@@ -95,22 +95,6 @@ void shake256_4x_inc_squeeze(uint8_t *output0,
     }
 
     ctx->index = index;
-}
-
-void shake256_4x_inc_init_from_precompute(SHAKE256_4X_CTX* ctx,
-                                       const SHAKE256_PRECOMPUTE* pre) {
-    unsigned i;
-    unsigned nonzero = pre->nonzero;
-    for (i=0; i<nonzero; i++) {
-        uint64_t entry = pre->s[i];
-	ctx->s[i][0] = entry;
-	ctx->s[i][1] = entry;
-	ctx->s[i][2] = entry;
-	ctx->s[i][3] = entry;
-    }
-    memset( &ctx->s[nonzero][0], 0, 4*8*(25-nonzero) );
-
-    ctx->index = pre->index;
 }
 
 } /* namespace shl_dsa */

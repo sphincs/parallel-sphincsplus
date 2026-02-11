@@ -12,6 +12,9 @@ namespace slh_dsa {
 
 const unsigned sha512_block_size = 128; //<! SHA-512 processes data in
                                     //<! 128 byte chunks
+extern const uint64_t SHA512_RC[80]; //<! Shared between our SHA-512
+                                    //<! implementations (standard,
+                                    //<! AVX-2, AVX-512)
 
 typedef uint64_t sha512_state[8];   //<! The core SHA512 state
                                     //<! Used internally in the SHA512

@@ -81,6 +81,7 @@ static slh_dsa::key* lookup_key( const char *name) {
 bool test_testvector_keygen(bool fast_flag, enum noise_level level) {
 
     const char *last_test = 0;
+    bool success = true;
 
     for (unsigned i=0; i<sizeof vectors/sizeof *vectors; i++) {
         struct w& v = vectors[i];
@@ -117,17 +118,17 @@ bool test_testvector_keygen(bool fast_flag, enum noise_level level) {
 	const unsigned char *key;
 	key = k->get_public_key();
 	if (!key || 0 != memcmp( key, v.public_key, v.public_key_len )) {
-	    printf( "INCORRECT PUBLIC KEY\n" );
+	    printf( "INCORRECT PUBLIC KEY for %s\n", v.parameter_set_name );
+            success = false;
 	}
 
 	// Check if the private key is what we expect
 	key = k->get_private_key();
 	if (!key || 0 != memcmp( key, v.private_key, v.private_key_len )) {
-	    printf( "INCORRECT PRIVATE KEY\n" );
+	    printf( "INCORRECT PRIVATE KEY for %s\n", v.parameter_set_name);
+            success = false;
 	}
-
-        // We're good for this parameter set
     }
 
-    return 1;
+    return success; // Fail if we got an incorrect key
 }

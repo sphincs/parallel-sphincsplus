@@ -19,7 +19,7 @@ namespace slh_dsa {
 
 const unsigned SHA256_FINALCOUNT_SIZE = 8;
 const unsigned NUM_ROUNDS = 64;
-static const unsigned long K[NUM_ROUNDS] = {
+const uint32_t SHA256_RC[NUM_ROUNDS] = {
     0x428a2f98UL, 0x71374491UL, 0xb5c0fbcfUL, 0xe9b5dba5UL, 0x3956c25bUL,
     0x59f111f1UL, 0x923f82a4UL, 0xab1c5ed5UL, 0xd807aa98UL, 0x12835b01UL,
     0x243185beUL, 0x550c7dc3UL, 0x72be5d74UL, 0x80deb1feUL, 0x9bdc06a7UL,
@@ -86,7 +86,7 @@ void SHA256_CTX::compress(const void *buf) {
 
     /* Compress */
 #define RND(a,b,c,d,e,f,g,h,i)                         \
-     t0 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i];   \
+     t0 = h + Sigma1(e) + Ch(e, f, g) + SHA256_RC[i] + W[i];   \
      t1 = Sigma0(a) + Maj(a, b, c);                    \
      d += t0;                                          \
      h  = t0 + t1;

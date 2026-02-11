@@ -22,7 +22,7 @@ static uint64_t ROL(uint64_t a, int offset) {
 const int SHAKE256_RATE = 136;
 
 /* Keccak round constants */
-static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
+const uint64_t KeccakF_RoundConstants[NROUNDS] = {
     0x0000000000000001ULL, 0x0000000000008082ULL,
     0x800000000000808aULL, 0x8000000080008000ULL,
     0x000000000000808bULL, 0x0000000080000001ULL,
@@ -442,40 +442,6 @@ void shake256_inc_finalize(SHAKE256_CTX* ctx) {
 
 void shake256_inc_squeeze(uint8_t *output, size_t outlen, SHAKE256_CTX* ctx) {
     keccak_inc_squeeze(output, outlen, ctx, SHAKE256_RATE);
-}
-
-/*
- * And the precompute versions
- */
-void shake256_precompute(SHAKE256_PRECOMPUTE* pre, const uint8_t *input, size_t inlen) {
-    SHAKE256_CTX ctx;
-    shake256_inc_init(&ctx);
-    shake256_inc_absorb(&ctx, input, inlen );
-
-    // Compute how many words need to be copied
-    unsigned nonzero;
-    if (inlen >= SHAKE256_RATE) {
-        // The initial absorb invoked a permute - copy everything
-	nonzero = 25;
-    } else {
-	// We're in the inital absorb phase - compute the number
-	// of words that were updated
-        nonzero = (inlen+7)/8;
-    }
-    memcpy( pre->s, ctx.s, nonzero * sizeof(uint64_t) );
-    memset( &pre->s[nonzero], 0, (25-nonzero) * sizeof(uint64_t) );
-    pre->index = ctx.s[25];
-    pre->nonzero = nonzero;
-    zeroize( &ctx, sizeof ctx );  // Sometimes the string we've precompted
-                                  // is secret
-}
-
-void shake256_inc_init_from_precompute(SHAKE256_CTX* ctx,
-                                       const SHAKE256_PRECOMPUTE* pre) {
-    unsigned nonzero = pre->nonzero;
-    memcpy( ctx->s, pre->s, 8*nonzero );
-    memset( &ctx->s[nonzero], 0, 8*(25-nonzero) );
-    ctx->s[25] = pre->index;
 }
 
 } /* namespace slh_dsa */

@@ -1,3 +1,5 @@
+# This branch currently has AVX-512 support (except the SHA2-128F, SHA2-192F parameter sets)
+
 ## A multithreaded implementation of the SLH-DSA signature algorithm
 
 This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205)
