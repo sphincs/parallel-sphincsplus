@@ -8,7 +8,7 @@ The specific features that this implements (that the reference code doesn't):
 
 - It can support multiple parameter sets at once
 
-It does assume that you have the AVX2 and AES_NI instructions available, as well as the Posix multithreading API - if not, well, I'll refer you to the reference code...
+It does assume that you have the AVX2 instructions available, as well as the Posix multithreading API - if not, well, I'll refer you to the reference code...
 
 If you're looking for an implementation of the Sphincs+ round 3 code, check out the consistent-basew branch
 
