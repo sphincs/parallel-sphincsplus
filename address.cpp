@@ -32,6 +32,7 @@ void key::copy_subtree_addr(addr_t out, const addr_t in)
 // we're talking about.
 void key::set_keypair_addr(addr_t addr, uint32_t keypair)
 {
+    addr[offset_kp_addr3] = keypair >> 16;
     addr[offset_kp_addr2] = keypair >> 8;
     addr[offset_kp_addr1] = keypair;
 }
@@ -42,6 +43,7 @@ void key::set_keypair_addr(addr_t addr, uint32_t keypair)
 void key::copy_keypair_addr(addr_t out, const addr_t in)
 {
     memcpy( out, in, offset_tree+8 );
+    out[offset_kp_addr3] = in[offset_kp_addr3];
     out[offset_kp_addr2] = in[offset_kp_addr2];
     out[offset_kp_addr1] = in[offset_kp_addr1];
 }

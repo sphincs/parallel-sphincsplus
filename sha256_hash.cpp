@@ -218,6 +218,7 @@ key_sha2::key_sha2(void) {
     offset_type = 9;
     offset_kp_addr1 = 13;
     offset_kp_addr2 = 12;
+    offset_kp_addr3 = 11;
     offset_chain_addr = 17;
     offset_hash_addr = 21;
     offset_tree_hgt = 17;

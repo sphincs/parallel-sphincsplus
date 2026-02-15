@@ -433,7 +433,7 @@ protected:
     // Pointers into the addr structure that we use; SHA-2
     // uses a different (shorter) addr structure
     unsigned offset_layer, offset_tree, offset_type;
-    unsigned offset_kp_addr1, offset_kp_addr2;
+    unsigned offset_kp_addr1, offset_kp_addr2, offset_kp_addr3;
     unsigned offset_chain_addr, offset_hash_addr;
     unsigned offset_tree_hgt, offset_tree_index;
 

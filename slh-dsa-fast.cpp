@@ -146,6 +146,7 @@ key::key(void) {
     offset_type = 19;
     offset_kp_addr1 = 23;
     offset_kp_addr2 = 22;
+    offset_kp_addr3 = 21;
     offset_chain_addr = 27;
     offset_hash_addr = 31;
     offset_tree_hgt = 27;
