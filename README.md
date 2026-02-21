@@ -4,6 +4,8 @@
 
 This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205), as well as the reduced usage parameter set rls128cs1, rls192cs1, rls256cs1
 
+## Warning: the implementation of the rls128cs1, rls192cs1, rls256cs1 is not verified.  Use at your own risk
+
 Current issues:
 
 - There are no known-answer-tests for the rls parameter sets (as no one has published them).  Hence, we just do 'self-consistency' tests, which is obviously very imperfect
