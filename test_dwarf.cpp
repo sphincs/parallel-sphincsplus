@@ -73,16 +73,16 @@ bool test_dwarf(bool, enum noise_level level) {
     dwarf_test s( level );
 
     // L1 parameter sets
-    RUN_TEST( sha2_rls128cs1 );
-    RUN_TEST( shake_rls128cs1 );
+    RUN_TEST( sha2_128_24 );
+    RUN_TEST( shake_128_24 );
 
     // L3 parameter sets
-    RUN_TEST( sha2_rls192cs1 );
-    RUN_TEST( shake_rls192cs1 );
+    RUN_TEST( sha2_192_24 );
+    RUN_TEST( shake_192_24 );
 
     // L5 parameter sets
-    RUN_TEST( sha2_rls256cs1 );
-    RUN_TEST( shake_rls256cs1 );
+    RUN_TEST( sha2_256_24 );
+    RUN_TEST( shake_256_24 );
 
     return true;
 }

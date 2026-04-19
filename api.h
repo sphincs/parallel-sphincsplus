@@ -272,12 +272,12 @@ protected:
     void set_256s(void) { set_geometry( 32, 22, 14, 64,  8, 67 ); }
     /// We're implementing a 256F parameter set
     void set_256f(void) { set_geometry( 32, 35,  9, 68, 17, 67 ); }
-    /// We're implementing a rls128cs1 parameter set
-    void set_rls128cs1(void) { set_geometry( 16, 6, 24, 22, 1, 68, 2 ); }
-    /// We're implementing a rls192cs1 parameter set
-    void set_rls192cs1(void) { set_geometry( 24, 9, 25, 21, 1, 67, 3 ); }
-    /// We're implementing a rls256cs1 parameter set
-    void set_rls256cs1(void) { set_geometry( 32,12, 25, 21, 1, 133, 2 ); }
+    /// We're implementing a 128_24 parameter set
+    void set_128_24(void) { set_geometry( 16, 6, 24, 22, 1, 68, 2 ); }
+    /// We're implementing a 192_24 parameter set
+    void set_192_24(void) { set_geometry( 24, 9, 25, 21, 1, 67, 3 ); }
+    /// We're implementing a 256_24 parameter set
+    void set_256_24(void) { set_geometry( 32,12, 25, 21, 1, 133, 2 ); }
 
     /// Generate a WOTS signature within the SLH-DSA signature
     /// @param[out] sig Where to place the signature
@@ -856,10 +856,10 @@ public:
     key_sha2_128s(void) { set_128s(); }
 };
 
-/// The class for keys with the SHA2 rls128cs1 parameter set
-class key_sha2_rls128cs1 : public key_sha2 {
+/// The class for keys with the SHA2 128-24 parameter set
+class key_sha2_128_24 : public key_sha2 {
 public:
-    key_sha2_rls128cs1(void) { set_rls128cs1(); }
+    key_sha2_128_24(void) { set_128_24(); }
 };
 
 /// The class for keys with the SHA2 192F parameter set
@@ -874,10 +874,10 @@ public:
     key_sha2_192s(void) { set_192s(); }
 };
 
-/// The class for keys with the SHA2 rls192cs1 parameter set
-class key_sha2_rls192cs1 : public key_sha2_L35 {
+/// The class for keys with the SHA2 192-24 parameter set
+class key_sha2_192_24 : public key_sha2_L35 {
 public:
-    key_sha2_rls192cs1(void) { set_rls192cs1(); }
+    key_sha2_192_24(void) { set_192_24(); }
 };
 
 /// The class for keys with the SHA256 256F parameter set
@@ -892,10 +892,10 @@ public:
     key_sha2_256s(void) { set_256s(); }
 };
 
-/// The class for keys with the SHA2 rls256cs1 parameter set
-class key_sha2_rls256cs1 : public key_sha2_L35 {
+/// The class for keys with the SHA2 256-24 parameter set
+class key_sha2_256_24 : public key_sha2_L35 {
 public:
-    key_sha2_rls256cs1(void) { set_rls256cs1(); }
+    key_sha2_256_24(void) { set_256_24(); }
 };
 
 /// The class for keys with the SHAKE 128F parameter set
@@ -910,10 +910,10 @@ public:
     key_shake_128s(void) { set_128s(); }
 };
 
-/// The class for keys with the SHAKE rls128cs1 parameter set
-class key_shake_rls128cs1 : public key_shake {
+/// The class for keys with the SHAKE 128-24 parameter set
+class key_shake_128_24 : public key_shake {
 public:
-    key_shake_rls128cs1(void) { set_rls128cs1(); }
+    key_shake_128_24(void) { set_128_24(); }
 };
 
 /// The class for keys with the SHAKE 192F parameter set
@@ -928,10 +928,10 @@ public:
     key_shake_192s(void) { set_192s(); }
 };
 
-/// The class for keys with the SHAKE rls192cs1 parameter set
-class key_shake_rls192cs1 : public key_shake {
+/// The class for keys with the SHAKE 192-24 parameter set
+class key_shake_192_24 : public key_shake {
 public:
-    key_shake_rls192cs1(void) { set_rls192cs1(); }
+    key_shake_192_24(void) { set_192_24(); }
 };
 
 /// The class for keys with the SHAKE 256F parameter set
@@ -946,10 +946,10 @@ public:
     key_shake_256s(void) { set_256s(); }
 };
 
-/// The class for keys with the SHAKE rls256cs1 parameter set
-class key_shake_rls256cs1 : public key_shake {
+/// The class for keys with the SHAKE 256-24 parameter set
+class key_shake_256_24 : public key_shake {
 public:
-    key_shake_rls256cs1(void) { set_rls256cs1(); }
+    key_shake_256_24(void) { set_256_24(); }
 };
 
 }  /* namespace slh_dsa */
