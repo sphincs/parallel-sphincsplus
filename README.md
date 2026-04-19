@@ -2,7 +2,7 @@
 
 ## A multithreaded implementation of the SLH-DSA signature algorithm
 
-This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205), as well as the reduced usage parameter sets NIST SP 800-230 (128_24, 192_24, 256_24)
+This repository contains an alternative implementation of the SLH-DSA signature system (FIPS 205), as well as the reduced usage parameter sets from the NIST SP 800-230 draft (128_24, 192_24, 256_24)
 
 ## Warning: the implementation of the _24 parameter sets is not verified.  Use at your own risk
 
