@@ -7,13 +7,15 @@
 const unsigned ITER = 100;
 const unsigned MAX_THREAD = 16;
 
+#if 0
+#error COMMAND ARGUMENTS NOT CURRENTLY SUPPORTED
 void usage(const char *programname) {
     fprintf( stderr, "Usage: %s [parmset]\n", programname );
     fprintf( stderr, "Suported parmeter sets:\n"
                      " sha128s sha128r sha192s sha192r sha256s sha256r\n" 
-                     " shake128s shake128r shake192s shake192r shake256s shake256r\n" 
-                     " har128s har128r har192s har192r har256s har256r\n"  );
+                     " shake128s shake128r shake192s shake192r shake256s shake256r\n"  );
 }
+#endif
 
 static int compare_float(const void *a, const void *b ) {
     const float *p = (const float *)a;
@@ -23,7 +25,7 @@ static int compare_float(const void *a, const void *b ) {
     return 0;
 }
 
-void run_test( sphincs_plus::key& k, const char *title ) {
+void run_test( slh_dsa::key& k, const char *title ) {
     printf( "%s:\n", title );
 
     if (!k.generate_key_pair()) {
@@ -93,54 +95,27 @@ void run_test( sphincs_plus::key& k, const char *title ) {
 #define CONCAT( a, b ) a ## b
 int main(void) {
 #define TEST( PARM ) {         \
-    CONCAT( sphincs_plus::key_, PARM ) key;  \
+    CONCAT( slh_dsa::key_, PARM ) key;  \
     run_test( key, #PARM );   \
 }
 
-    TEST( sha256_128f_simple )
-    TEST( sha256_128f_robust )
-    TEST( sha256_128s_simple )
-    TEST( sha256_128s_robust )
+    TEST( sha2_128f )
+    TEST( sha2_128s )
 
-    TEST( shake256_128f_simple )
-    TEST( shake256_128f_robust )
-    TEST( shake256_128s_simple )
-    TEST( shake256_128s_robust )
+    TEST( shake_128f )
+    TEST( shake_128s )
 
-    TEST( haraka_128f_simple )
-    TEST( haraka_128f_robust )
-    TEST( haraka_128s_simple )
-    TEST( haraka_128s_robust )
+    TEST( sha2_192f )
+    TEST( sha2_192s )
 
-    TEST( sha256_192f_simple )
-    TEST( sha256_192f_robust )
-    TEST( sha256_192s_simple )
-    TEST( sha256_192s_robust )
+    TEST( shake_192f )
+    TEST( shake_192s )
 
-    TEST( shake256_192f_simple )
-    TEST( shake256_192f_robust )
-    TEST( shake256_192s_simple )
-    TEST( shake256_192s_robust )
+    TEST( sha2_256f )
+    TEST( sha2_256s )
 
-    TEST( haraka_192f_simple )
-    TEST( haraka_192f_robust )
-    TEST( haraka_192s_simple )
-    TEST( haraka_192s_robust )
-
-    TEST( sha256_256f_simple )
-    TEST( sha256_256f_robust )
-    TEST( sha256_256s_simple )
-    TEST( sha256_256s_robust )
-
-    TEST( shake256_256f_simple )
-    TEST( shake256_256f_robust )
-    TEST( shake256_256s_simple )
-    TEST( shake256_256s_robust )
-
-    TEST( haraka_256f_simple )
-    TEST( haraka_256f_robust )
-    TEST( haraka_256s_simple )
-    TEST( haraka_256s_robust )
+    TEST( shake_256f )
+    TEST( shake_256s )
 
     return 0;
 }
