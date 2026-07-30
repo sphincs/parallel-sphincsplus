@@ -16,3 +16,5 @@ Interesting branches:
 - fault  - Attempts to protect against fault attacks (by performing the critical computations twice and comparing)
 - sfluhrer-avx-512 - Uses the AVX-512 instruction set to accelerate things (if available, if not, it falls back to AVX-2)
 - dwarf   - Adds support for the proposed rls128cs1, rls192cs1, rls256cs1 parameter sets (both SHA2 and SHAKE)
+
+The fault detection works by the simple expedient of 'computing (most) everything twice; compare results'; we do try to ensure that the two computations are isolated (either by time, or being done by different threads)
