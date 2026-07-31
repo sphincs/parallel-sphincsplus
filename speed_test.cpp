@@ -38,56 +38,62 @@ void run_test( slh_dsa::key& k, const char *title ) {
 
     float results[MAX_THREAD+1][ITER];
 
-    // Run the tests
-    // We stagger the number of threads, to spread out the
-    // effects of medium term changes in the CPU performance
-    // (e.g. by load from other processes)
-    for (unsigned i=0; i<ITER; i++) {
-        for (unsigned thread=1; thread<=MAX_THREAD; thread++) {
-            k.set_num_thread(thread);
+    float x1_time = 1.0;  // Time for 1 thread, fault detection disabled
+    for (int fault = 0; fault < 2; fault++) {
+        if (fault) printf( "%s (fault detection):\n", title );
 
-            static unsigned char message[3] = { 'a', 'b', 'c' };
-            struct timespec start, stop;
+        k.set_fault_detection(fault > 0);
 
-	    // Generate a signature and measure the
-	    // wallclock time it took
-            clock_gettime(CLOCK_REALTIME, &start);
-            if (!k.sign( sig, sig_len, message, 3)) {
-                printf( "*** Signature generation failure\n" );
-	       	return;
+        // Run the tests
+        // We stagger the number of threads, to spread out the
+        // effects of medium term changes in the CPU performance
+        // (e.g. by load from other processes)
+        for (unsigned i=0; i<ITER; i++) {
+            for (unsigned thread=1; thread<=MAX_THREAD; thread++) {
+                k.set_num_thread(thread);
+    
+                static unsigned char message[3] = { 'a', 'b', 'c' };
+                struct timespec start, stop;
+    
+	        // Generate a signature and measure the
+	        // wallclock time it took
+                clock_gettime(CLOCK_REALTIME, &start);
+                if (!k.sign( sig, sig_len, message, 3)) {
+                    printf( "*** Signature generation failure\n" );
+	       	    return;
+                }
+                clock_gettime(CLOCK_REALTIME, &stop);
+    
+                // Double check - make sure the signature verifies
+	        // Not part of the performance test; instead, just
+	        // a check to make sure we generated it properly
+                if (!k.verify( sig, sig_len, message, 3 )) {
+                    printf( "Signature verify failure\n" );
+		    return;
+                }
+    
+	        results[thread][i] = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
             }
-            clock_gettime(CLOCK_REALTIME, &stop);
-
-            // Double check - make sure the signature verifies
-	    // Not part of the performance test; instead, just
-	    // a check to make sure we generated it properly
-            if (!k.verify( sig, sig_len, message, 3 )) {
-                printf( "Signature verify failure\n" );
-		return;
-            }
-
-	    results[thread][i] = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
         }
+    
+        // Print out the results
+        for (unsigned thread=1; thread<=MAX_THREAD; thread++) {
+    	    // Find the median time (not average; that might have
+    	    // anomalous values should the process be task-switched)
+    	    qsort( results[thread], ITER, sizeof(float), compare_float );
+    	    float avg_time = results[thread][ ITER/2 ];  /* Median time */
+    
+    	    printf( "%d thread - average time = %f msec", thread, avg_time / 1000.0 );
+    	    if (thread == 1 && fault == 0) {
+    	        x1_time = avg_time;
+    	        printf( "\n" );
+    	    } else {
+    	        printf( "  Speedup = %f\n", x1_time / avg_time );
+    	    }
+        }
+    
+        fflush(stdout);
     }
-
-    // Print out the results
-    float x1_time = 1.0;
-    for (unsigned thread=1; thread<=MAX_THREAD; thread++) {
-	// Find the median time (not average; that might have
-	// anomalous values should the process be task-switched)
-	qsort( results[thread], ITER, sizeof(float), compare_float );
-	float avg_time = results[thread][ ITER/2 ];  /* Median time */
-
-	printf( "%d thread - average time = %f msec", thread, avg_time / 1000.0 );
-	if (thread == 1) {
-	    x1_time = avg_time;
-	    printf( "\n" );
-	} else {
-	    printf( "  Speedup = %f\n", x1_time / avg_time );
-	}
-    }
-
-    fflush(stdout);
 
     delete[] sig;
 }
