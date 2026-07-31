@@ -13,6 +13,6 @@ It does assume that you have the AVX2 instructions available, as well as the Pos
 If you're looking for an implementation of the Sphincs+ round 3 code, check out the consistent-basew branch
 
 Interesting branches:
-- fault_slh  - Attempts to protect against fault attacks (by performing the critical computations twice and comparing)
+- fault-slh  - Attempts to protect against fault attacks (by performing the critical computations twice and comparing)
 - sfluhrer-avx-512 - Uses the AVX-512 instruction set to accelerate things (if available, if not, it falls back to AVX-2)
 - dwarf   - Adds support for the proposed rls128cs1, rls192cs1, rls256cs1 parameter sets (both SHA2 and SHAKE)
