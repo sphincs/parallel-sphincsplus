@@ -448,8 +448,7 @@ key::sign_flag key::sign_internal(
 
     // The main thread is done -- wait for all the child threads to complete
     for (unsigned i=1; i < count_thread; i++) {
-        void *status;
-        pthread_join( thread_id[i], &status );
+        void *status; pthread_join( thread_id[i], &status );
     }
 
     if (detect_fault) {
@@ -459,7 +458,7 @@ key::sign_flag key::sign_internal(
         if (center.detected_fault || center.validated_wots != (1U << d()) - 1) {
             // Oops; the fault detection logic triggered
             memset( signature, 0, len_signature_buffer );
-            return failure;
+            return sign_fault_detected;
         }
     }
 

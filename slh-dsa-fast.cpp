@@ -138,7 +138,7 @@ key::key(void) {
     have_private_key = false;
 
     // We initialize the offset parameters to what SHAKE uses
-    // SHA-256 will update these field values
+    // SHA-2 parameter sets will update these field values
     offset_layer = 3; 
     offset_tree = 8;
     offset_type = 19;
@@ -150,6 +150,7 @@ key::key(void) {
     offset_tree_index = 28;
 
     num_thread = default_thread;
+    detect_fault = default_detect_fault;
 }
 
 key::~key(void) {

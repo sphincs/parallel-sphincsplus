@@ -33,8 +33,8 @@ static enum f_type next_test( enum f_type f ) {
 // We run this test against a single parameter set; I don't expect
 // fault detection to be parameter-set specific, so I just picked
 // the fastest one
-class faulty_key : public sphincs_plus::key_haraka_128f_simple {
-    typedef sphincs_plus::key_haraka_128f_simple parent;
+class faulty_key : public slh_dsa::key_sha2_128f {
+    typedef slh_dsa::key_sha2_128f parent;
     bool do_error;   // If false, we're not injecting a fault
     enum f_type what_type;  // If we are injecting a fault, which function
                      // are we doing it to?
@@ -45,15 +45,15 @@ class faulty_key : public sphincs_plus::key_haraka_128f_simple {
 protected:
     // These are the instrumented internal functions
     virtual void prf_addr_xn(unsigned char **out,
-              const sphincs_plus::addr_t* addrxn);
+              const slh_dsa::addr_t* addrxn);
     virtual void f_xn(unsigned char **out, unsigned char **in,
-              sphincs_plus::addr_t* addr);
+              slh_dsa::addr_t* addr);
     virtual void thash(unsigned char *out,
              const unsigned char *in,
-             unsigned int inblocks, sphincs_plus::addr_t addr);
+             unsigned int inblocks, slh_dsa::addr_t addr);
     virtual void thash_xn(unsigned char **out,
              unsigned char **in, 
-             unsigned int inblocks, sphincs_plus::addr_t* addrxn);
+             unsigned int inblocks, slh_dsa::addr_t* addrxn);
     // Note that we dont't try to tweak the h_msg and prf_msg
     // functions; those wouldn't cause an exploitable error
 public:
@@ -79,7 +79,7 @@ public:
 };
 
 void faulty_key::prf_addr_xn(unsigned char **out,
-                             const sphincs_plus::addr_t* addrxn) {
+                             const slh_dsa::addr_t* addrxn) {
     parent::prf_addr_xn(out, addrxn);
     if (do_error && what_type == prf && count[prf] == target_count) {
         // Inject an error
@@ -89,7 +89,7 @@ void faulty_key::prf_addr_xn(unsigned char **out,
 }
 
 void faulty_key::f_xn(unsigned char **out, unsigned char **in,
-                      sphincs_plus::addr_t* addr) {
+                      slh_dsa::addr_t* addr) {
     parent::f_xn(out, in, addr);
     if (do_error && what_type == f && count[f] == target_count) {
         // Inject an error
@@ -100,7 +100,7 @@ void faulty_key::f_xn(unsigned char **out, unsigned char **in,
 
 void faulty_key::thash(unsigned char *out,
              const unsigned char *in,
-             unsigned int inblocks, sphincs_plus::addr_t addr) {
+             unsigned int inblocks, slh_dsa::addr_t addr) {
     parent::thash(out, in, inblocks, addr);
     if (do_error && what_type == thash_f && count[thash_f] == target_count) {
         // Inject an error
@@ -111,7 +111,7 @@ void faulty_key::thash(unsigned char *out,
 
 void faulty_key::thash_xn(unsigned char **out,
              unsigned char **in, 
-             unsigned int inblocks, sphincs_plus::addr_t* addrxn) {
+             unsigned int inblocks, slh_dsa::addr_t* addrxn) {
     parent::thash_xn(out, in, inblocks, addrxn);
     if (do_error && what_type == thash_f && count[thash_f] == target_count) {
         // Inject an error
@@ -134,7 +134,7 @@ bool test_fault(bool fast_flag, enum noise_level level) {
 
     // Generate the known good signature (turning off fault detection)
     k.set_fault_detection(false);
-    auto sig = k.sign( msg, msg_len, 0 );
+    auto sig = k.sign( msg, msg_len, 0, 0, 0 );
     unsigned sig_len = k.len_signature();
 
     // To be thorough, check if the signature validates
@@ -153,7 +153,7 @@ bool test_fault(bool fast_flag, enum noise_level level) {
     // many times each function is called)
     k.reset_count();
     try {
-        auto sig2 = k.sign( msg, msg_len, 0 );
+        auto sig2 = k.sign( msg, msg_len, 0, 0, 0 );
         // We generated a signature; make sure it's the same
         if (0 != memcmp( sig.get(), sig2.get(), sig_len )) {
             printf( "*** TURNING ON FAULT DETECTION CHANGED THE SIGNATURE\n" );
@@ -216,7 +216,7 @@ bool test_fault(bool fast_flag, enum noise_level level) {
             k.set_error(test, pos);  // Cause the pos'th evaluation of the
                                      // function indicated by test to be wrong
             try {
-                auto sig2 = k.sign( msg, msg_len, 0 );
+                auto sig2 = k.sign( msg, msg_len, 0, 0, 0 );
                 // We generated a signature withot the fault detection logic
                 // triggering (which can happen if the function was used in
                 // the top level Merkle tree, or we tweaked a track that
