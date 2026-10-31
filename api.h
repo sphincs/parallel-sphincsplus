@@ -3,8 +3,7 @@
 
 ///
 /// \file api.h
-/// \brief This is the public interface to the fast SLH-DSA implementation
-
+/// \brief This is the public interface to the fast SLH-DSA implementati
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -172,6 +171,7 @@ public:
 	sign_no_private_key, //<! We don't have a private key
 	sign_bad_context_len, //<! Contexts are limited to 255 bytes
 	sign_buffer_too_short, //<! Signature buffer was too short
+    sign_no_randomness, //<! Caller asked for randomness, none was available
     };
 private:
 
