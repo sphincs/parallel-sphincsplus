@@ -285,8 +285,8 @@ key::sign_flag key::sign_internal(
     case random_success:
         break;
     case random_failure: default:
-        // Randomness failure detected; if we want to do something other
-	// than default, we'd do it here
+        // Randomness failure detected
+		return sign_no_randomness;
     case random_default:
         memcpy( opt, get_public_seed(), n );  // No optrand provided;
                                               // use the default
